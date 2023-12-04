@@ -23,6 +23,16 @@
 
 #define undefined -1
 
+//static variables
+
+static sf::Font arial_font;
+
+
+
+
+
+
+
 class client
 {
 private:
@@ -198,14 +208,114 @@ std::string trim_str(const std::string& _string_to_trim)
     return _string_to_trim.substr(pos_left, (pos_right - pos_left + 1));
 }
 
+//sfml-graphic
+class interface_object : public sf::Drawable
+{
+public:
+    sf::Vector2f position;
+    sf::Vector2f size;
 
+    float rotation;
+    uint8_t thickness = 0;
+    interface_object() = default;
+    interface_object(sf::Vector2f _position, float _rotation, sf::Vector2f _size, uint8_t thickness) : position(_position), rotation(_rotation), size(_size) {}
+};
+
+class button : public interface_object
+{
+public:
+    sf::RectangleShape button_shape;
+    sf::Text button_text;
+
+    bool isHovered = false;
+    bool hasBeenPressed = false;
+
+    button(sf::Vector2f _position, float _rotation = 0.0, sf::Vector2f _size  = sf::Vector2f(1, 1), uint8_t _thickness = 0, std::string _text = "", uint8_t _font_size = 24) : interface_object(_position, _rotation, _size, _thickness)
+    {
+        button_shape.setSize(size);
+        button_shape.setOutlineColor(sf::Color::Green);
+        button_shape.setOutlineThickness(thickness);
+        button_shape.setPosition(position);
+        button_shape.setRotation(rotation);
+
+        button_text.setFont(arial_font);
+        button_text.setPosition(position);
+        button_text.setFillColor(sf::Color::Red);
+        button_text.setString(_text);
+        button_text.setCharacterSize(_font_size);
+    }
+    
+    
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        target.draw(button_shape);
+        target.draw(button_text);
+    }
+
+    void on_press()
+    {
+        if(!hasBeenPressed)
+        {
+            printf("Pressed\n");
+            hasBeenPressed = true;
+        }
+    }
+
+    void on_hover()
+    {
+        this->isHovered = true;
+        printf("Hovering\n");
+    }
+
+    void on_unhover()
+    {
+        this->isHovered = false;
+
+    }
+};
+
+class menu_interface : public interface_object
+{
+public:
+    std::vector<button> menu_buttons;
+    menu_interface()
+    {
+        button file_button(sf::Vector2f(0, 0), 0, sf::Vector2f(80, 20), -1, "File", 24);
+        button edit_button(sf::Vector2f(90, 0), 0, sf::Vector2f(80, 20), -1, "Edit", 24);
+
+        menu_buttons.push_back(file_button);
+        menu_buttons.push_back(edit_button);
+    }
+
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        for(auto i = menu_buttons.begin(); i != menu_buttons.end(); i++)
+        {
+            target.draw(i->button_shape);
+            target.draw(i->button_text);
+        }
+    }
+
+};
 
 //graphics
 void SFML_logic()
 {
+
+    if(!arial_font.loadFromFile("arial.ttf"))
+    {
+        printf("Couldn't load font.\n");
+    }
+
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Collaborative Notepad - Proiect retele.");
+    menu_interface menu_interface_object;
+
+
     while (window.isOpen())
     {
+        sf::Vector2i cursor_position = sf::Mouse::getPosition(window);
+
         sf::Event event;
         while (window.pollEvent(event))
         {
@@ -214,9 +324,41 @@ void SFML_logic()
         }
 
         window.clear();
+
+        //process all the buttons
+        for(auto i = menu_interface_object.menu_buttons.begin(); i != menu_interface_object.menu_buttons.end(); i++)
+        {
+            //check if mouse is over it
+            if
+            (
+                cursor_position.x >= i->button_shape.getPosition().x && 
+                cursor_position.x <= i->button_shape.getSize().x &&
+                cursor_position.y >= i->button_shape.getPosition().y &&
+                cursor_position.y <= i->button_shape.getSize().y
+            )
+            {
+                i->on_hover();
+                if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                {
+                    i->on_press();
+                }
+                else
+                {
+                    i->hasBeenPressed = false;
+                }
+            }
+        }
+        
+
+        window.draw(menu_interface_object);
+
+
+
         window.display();
     }
 }
+
+
 
 int main()
 {
