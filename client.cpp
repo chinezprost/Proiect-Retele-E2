@@ -56,7 +56,7 @@ public:
 
 int main()
 {
-    client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25567);
+    client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25562);
     client_object.try_connect();
 
     while(true)

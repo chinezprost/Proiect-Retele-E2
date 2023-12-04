@@ -7,7 +7,7 @@
 #include <vector>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
+#include <string>
 #include <thread>
 #include <threads.h>
 #include <signal.h>
@@ -63,6 +63,14 @@ public:
             handle_error("Couldn't listen!");
         }
     }
+    bool add_client_thread(std::thread _thread)
+    {
+        this->connected_clients.push_back(std::move(_thread));
+        return true; //TODO!
+    }
+
+    
+
     void on_connected_client()
     {
         printf("Connected!\n");
@@ -78,8 +86,17 @@ public:
 class client_thread
 {
 public:
+    int8_t client_descriptor = undefined;
 
-
+    void operator()(const std::vector<std::string>& thread_parameters)
+    {
+        client_descriptor = std::stoi(thread_parameters.at(0));
+        while(true)
+        {
+            printf("I am client and i am async with id: %d\n", client_descriptor);
+            sleep(1);
+        }
+    }
 };
 
 void signal_handler_logic()
@@ -87,16 +104,18 @@ void signal_handler_logic()
     signal(SIGTSTP, signal_handler);
 }
 
+void on_server_close()
+{
+   
+}
 
 int main()
 {
     signal_handler_logic();
 
-    server server_object(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25567, 32);
+    server server_object(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25562, 32);
     server_socket_descriptor = server_object.get_server_descriptor();
     int8_t connected_client_descriptor = undefined;
-
-
 
     while(true)
     {
@@ -105,11 +124,14 @@ int main()
         {
             handle_error("Couldn't accept connection");
         }
-        printf("Client with iID: %d has connected.\n", connected_client_descriptor);
+        printf("Client with ID: %d has connected.\n", connected_client_descriptor);
+        std::vector<std::string> thread_parameters;
+        thread_parameters.push_back(std::to_string(connected_client_descriptor));
+        std::thread connected_client_thread(client_thread(), thread_parameters);
+        connected_client_thread.detach();
     }
 
     printf("OK\n");
-
 
     //char* params;
     //std::thread thread_obj(client_thread(), params);
