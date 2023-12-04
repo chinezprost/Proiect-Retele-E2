@@ -11,6 +11,7 @@
 #include <thread>
 #include <threads.h>
 #include <signal.h>
+#include <SFML/Graphics.hpp>
 
 #define handle_error(x) {perror(x); exit(0);}
 
@@ -97,7 +98,7 @@ public:
         while(true)
         {
             recv(client_descriptor, internal_buffer, sizeof(internal_buffer), 0);
-            printf("I've read from the server: %s\n", internal_buffer);
+            printf("Received from client: %d the message: %s\n", client_descriptor, internal_buffer);
         }
     }
 };

@@ -17,6 +17,7 @@
 #include <arpa/inet.h>
 #include <iterator>
 #include <sstream>
+#include <SFML/Graphics.hpp>
 
 #define handle_error(x) {perror(x); exit(0);}
 
@@ -25,7 +26,7 @@
 class client
 {
 private:
-    uint16_t client_descriptor = -1;
+    uint16_t client_descriptor;
     sockaddr_in client_object;
 
 public:
@@ -129,6 +130,22 @@ public:
         return true;
     }
 };
+class send_to_server : public command
+{
+public:
+    send_to_server() = delete;
+    send_to_server(const std::string& _command_name, const uint16_t& _command_arg_count) : command(_command_name, _command_arg_count)
+    {
+
+    }
+
+    bool action(std::vector<std::string> _params) override
+    {
+        send(std::stoi(_params.back()), _params[0].c_str(), sizeof(_params[0].c_str()), 0);
+        return true;
+    }
+};
+
 
 void CommandInitialization(std::vector<command*>& commands)
 {
@@ -137,6 +154,10 @@ void CommandInitialization(std::vector<command*>& commands)
 
     connect_to_room* connect_to_room_command = new connect_to_room("connect_to_room", 0);
     commands.push_back(connect_to_room_command);
+
+    send_to_server* send_to_server_command = new send_to_server("send", 1);
+    commands.push_back(send_to_server_command);
+
 }
 
 //helper commands
@@ -147,7 +168,7 @@ std::vector<std::string> split_str(std::string _string_to_split)
     while(_string_to_split.size() > 0)
     {
         delimiter_position = _string_to_split.find_first_of(' ');
-        printf("%d with size of: %d\n", delimiter_position, _string_to_split.size());
+        printf("%d with size of: %d\n", delimiter_position, (int)_string_to_split.size());
         if(delimiter_position != -1)
         {
             std::string splitted_word = _string_to_split.substr(0, delimiter_position);
@@ -169,7 +190,7 @@ std::vector<std::string> split_str(std::string _string_to_split)
 std::string trim_str(const std::string& _string_to_trim)
 {
     int16_t pos_left = _string_to_trim.find_first_not_of(' ');
-    if(std::string::npos == pos_left)
+    if(std::string::npos == (const long unsigned int)pos_left)
     {
         return _string_to_trim;
     }
@@ -178,8 +199,30 @@ std::string trim_str(const std::string& _string_to_trim)
 }
 
 
+
+//graphics
+void SFML_logic()
+{
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Collaborative Notepad - Proiect retele.");
+    while (window.isOpen())
+    {
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window.close();
+        }
+
+        window.clear();
+        window.display();
+    }
+}
+
 int main()
 {
+
+    std::thread sfml_thread(&SFML_logic);
+
 
     std::vector<command*> commands;
     CommandInitialization(commands);
@@ -189,6 +232,7 @@ int main()
     client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
     client_object.try_connect();
     std::thread listen_to_server(&client::listening_to_server_thread, &client_object, 0);
+
     listen_to_server.detach();
     char input_buffer[1024];
     while(true)
@@ -210,6 +254,7 @@ int main()
             if(trim_str(b_string.substr(0, (b_string.find_first_of(' ')))).compare(trim_str((*i)->get_command_name())) == 0 /* && std::count(b_string.begin(), b_string.end(), ' ') - 1 == i->get_command_args_count() */ )
             {
                 input_params = split_str(b_string);
+                input_params.push_back(std::to_string(client_object.get_client_descriptor()));
                 (*i)->action(input_params);
                 is_command_valid = true;
                 break;
@@ -220,9 +265,6 @@ int main()
         {
             printf("Error: Invalid command.\n");
         }
-        
-
-        //send(client_object.get_client_descriptor(), input_buffer, sizeof(input_buffer), 0);
     }
 
 
