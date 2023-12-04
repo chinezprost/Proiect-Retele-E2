@@ -32,16 +32,16 @@ void signal_handler(int signal_number)
 class server
 {
 private:
-    uint8_t server_descriptor = undefined;
+    uint16_t server_descriptor = undefined;
     uint16_t max_clients = undefined;
     sockaddr_in server_object;
     std::vector<std::thread> connected_clients_threads;
 public:
-    std::array<uint8_t, 128> connected_clients_fds;
-    uint8_t connected_clients_count = 0;
+    std::array<uint16_t, 128> connected_clients_fds;
+    uint16_t connected_clients_count = 0;
     sockaddr_in arrived_client;
 
-    server(const ushort& _sock_type, const ushort& _sock_stream, const ushort& _protocol, const ushort& _htonl, const ushort& _port, const uint16_t& _max_clients)
+    server(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, const uint16_t& _htonl, const uint16_t& _port, const uint16_t& _max_clients)
     {
         server_object.sin_family = _sock_type;
         server_object.sin_addr.s_addr = htonl(_htonl);
@@ -52,8 +52,8 @@ public:
         {
             handle_error("Couldn't create server socket.");
         }
-        uint8_t option = 1;
-        setsockopt(server_descriptor, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(uint8_t));
+        uint16_t option = 1;
+        setsockopt(server_descriptor, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(uint16_t));
 
         if(bind(server_descriptor, reinterpret_cast<sockaddr*>(&server_object), sizeof(sockaddr)) == -1)
         {
@@ -77,7 +77,7 @@ public:
     {
         printf("Connected!\n");
     }
-    const uint8_t& get_server_descriptor()
+    const uint16_t& get_server_descriptor()
     {
         return this->server_descriptor;
     }
@@ -93,10 +93,11 @@ public:
     void operator()(const std::vector<std::string>& thread_parameters)
     {
         client_descriptor = std::stoi(thread_parameters.at(0));
+        char internal_buffer[1024];
         while(true)
         {
-            printf("I am client and i am async with id: %d\n", client_descriptor);
-            sleep(1);
+            recv(client_descriptor, internal_buffer, sizeof(internal_buffer), 0);
+            printf("I've read from the server: %s\n", internal_buffer);
         }
     }
 };

@@ -49,6 +49,9 @@
         "stop_token": "cpp",
         "streambuf": "cpp",
         "thread": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "sstream": "cpp"
     }
 }
