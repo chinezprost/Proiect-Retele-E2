@@ -35,8 +35,10 @@ private:
     uint8_t server_descriptor = undefined;
     uint16_t max_clients = undefined;
     sockaddr_in server_object;
-    std::vector<std::thread> connected_clients;
+    std::vector<std::thread> connected_clients_threads;
 public:
+    std::array<uint8_t, 128> connected_clients_fds;
+    uint8_t connected_clients_count = 0;
     sockaddr_in arrived_client;
 
     server(const ushort& _sock_type, const ushort& _sock_stream, const ushort& _protocol, const ushort& _htonl, const ushort& _port, const uint16_t& _max_clients)
@@ -65,7 +67,7 @@ public:
     }
     bool add_client_thread(std::thread _thread)
     {
-        this->connected_clients.push_back(std::move(_thread));
+        this->connected_clients_threads.push_back(std::move(_thread));
         return true; //TODO!
     }
 
@@ -109,11 +111,13 @@ void on_server_close()
    
 }
 
+
+
 int main()
 {
     signal_handler_logic();
 
-    server server_object(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25562, 32);
+    server server_object(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25561, 32);
     server_socket_descriptor = server_object.get_server_descriptor();
     int8_t connected_client_descriptor = undefined;
 
@@ -128,6 +132,8 @@ int main()
         std::vector<std::string> thread_parameters;
         thread_parameters.push_back(std::to_string(connected_client_descriptor));
         std::thread connected_client_thread(client_thread(), thread_parameters);
+        server_object.connected_clients_fds[++server_object.connected_clients_count] = connected_client_descriptor;
+
         connected_client_thread.detach();
     }
 

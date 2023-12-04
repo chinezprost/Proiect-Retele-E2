@@ -10,6 +10,7 @@
 #include <string>
 #include <thread>
 #include <threads.h>
+#include <iostream>
 #include <arpa/inet.h>
 
 #define handle_error(x) {perror(x); exit(0);}
@@ -51,17 +52,30 @@ public:
     {
         printf("Connected!\n");
     }
-
+    
+    void listening_to_server_thread(uint32_t start_timespan)
+    {
+        int timespan = start_timespan;
+        while(true)
+        {
+            
+            printf("Listening to the server. Current timespan: %d\n", timespan += 1);
+            sleep(1);
+        }
+    }
 };
 
 int main()
 {
-    client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25562);
+    client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
     client_object.try_connect();
-
+    std::thread listen_to_server(&client::listening_to_server_thread, &client_object, 0);
+    listen_to_server.detach();
+    char input_buffer[1024];
     while(true)
     {
-
+        std::cin >> input_buffer;
+        printf("I've read from input: %s\n", input_buffer);
     }
 
 
