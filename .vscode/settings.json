@@ -1,5 +1,5 @@
 {
-    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.errorSquiggles": "Enabled",
     "files.associations": {
         "array": "cpp",
         "atomic": "cpp",
@@ -52,6 +52,7 @@
         "typeinfo": "cpp",
         "iostream": "cpp",
         "istream": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "map": "cpp"
     }
 }

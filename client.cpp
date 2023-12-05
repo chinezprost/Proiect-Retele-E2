@@ -39,7 +39,22 @@ private:
     uint16_t client_descriptor;
     sockaddr_in client_object;
 
+    static client client_instance;
+
+
 public:
+    client(const client& client_object) = delete;
+
+    static client& instance(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, std::string _ip_adress, const uint16_t& _port) {
+        client_instance = client(_sock_type, _sock_stream, _protocol, _ip_adress, _port);
+        return client_instance;
+    }
+
+    static client& instance()
+    {
+        return client_instance;
+    }
+
     client(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, std::string _ip_adress, const uint16_t& _port)
     {
         client_object.sin_family = _sock_type;
@@ -227,10 +242,27 @@ public:
     sf::RectangleShape button_shape;
     sf::Text button_text;
 
+    //void(*on_press_function)(std::vector<std::string>);
+    std::function<void(std::vector<std::string>)> on_press_function = nullptr;
+    std::vector<std::string> function_on_press_parameters;
+
+    //void(*on_hover_function)(std::vector<std::string>);
+    std::function<void(std::vector<std::string>)> on_hover_function = nullptr;
+    std::vector<std::string> function_on_hover_parameters;
+
     bool isHovered = false;
     bool hasBeenPressed = false;
 
-    button(sf::Vector2f _position, float _rotation = 0.0, sf::Vector2f _size  = sf::Vector2f(1, 1), uint8_t _thickness = 0, std::string _text = "", uint8_t _font_size = 24) : interface_object(_position, _rotation, _size, _thickness)
+    button
+    (
+        sf::Vector2f _position, float _rotation = 0.0, sf::Vector2f _size  = sf::Vector2f(1, 1), uint8_t _thickness = 0, 
+        std::string _text = "", uint8_t _font_size = 24, 
+        std::function<void(std::vector<std::string>)> _on_press_function = nullptr, 
+        std::vector<std::string> _function_on_press_parameters = {}, 
+        std::function<void(std::vector<std::string>)> _on_hover_function = nullptr, 
+        std::vector<std::string> _function_on_hover_parameters = {}
+    ) : interface_object(_position, _rotation, _size, _thickness)
+    
     {
         button_shape.setSize(size);
         button_shape.setOutlineColor(sf::Color::Green);
@@ -240,9 +272,14 @@ public:
 
         button_text.setFont(arial_font);
         button_text.setPosition(position);
-        button_text.setFillColor(sf::Color::Red);
+        button_text.setFillColor(sf::Color::Black);
         button_text.setString(_text);
         button_text.setCharacterSize(_font_size);
+
+        on_press_function = _on_press_function;
+        on_hover_function = _on_hover_function;
+        function_on_press_parameters = _function_on_press_parameters;
+        function_on_hover_parameters = _function_on_hover_parameters;
     }
     
     
@@ -256,21 +293,25 @@ public:
     {
         if(!hasBeenPressed)
         {
-            printf("Pressed\n");
+            if(on_press_function != nullptr)
+                on_press_function(function_on_press_parameters);
             hasBeenPressed = true;
         }
     }
 
     void on_hover()
     {
-        this->isHovered = true;
-        printf("Hovering\n");
+        if(!this->isHovered)
+        {
+                if(on_hover_function != nullptr)
+                    on_hover_function(function_on_hover_parameters);
+                this->isHovered = true;
+        }
     }
 
     void on_unhover()
     {
         this->isHovered = false;
-
     }
 };
 
@@ -278,85 +319,196 @@ class menu_interface : public interface_object
 {
 public:
     std::vector<button> menu_buttons;
+    class room_settings
+    {
+    public:
+        std::vector<button> room_buttons;
+        std::vector<std::string> create_room_press_function, create_room_hover_parameters;
+        room_settings()
+            {
+            auto create_room_press_function = [this](std::vector<std::string> _parameters) 
+            {
+                printf("Pressed file button\n");
+            };
+
+            auto create_room_hover_function = [this](std::vector<std::string> _parameters)
+            {
+                printf("On hover file_button\n");
+            };
+            button file_button(sf::Vector2f(160, 20), 0, sf::Vector2f(80, 20), -1, "Create", 16, create_room_press_function, create_room_hover_parameters, create_room_hover_function, create_room_hover_parameters);
+            room_buttons.push_back(file_button);
+        }
+    };
+
+    room_settings room_settings_interface;
+    
+
     menu_interface()
     {
-        button file_button(sf::Vector2f(0, 0), 0, sf::Vector2f(80, 20), -1, "File", 24);
-        button edit_button(sf::Vector2f(90, 0), 0, sf::Vector2f(80, 20), -1, "Edit", 24);
+        
+        std::vector<std::string> file_button_press_parameters, file_button_hover_parameters;
+        auto file_button_press_function = [this](std::vector<std::string> _parameters) 
+        {
+            printf("Pressed file button\n");
+        };
+
+        auto file_button_hover_function = [this](std::vector<std::string> _parameters)
+        {
+            printf("On hover file_button\n");
+        };
+        button file_button(sf::Vector2f(0, 0), 0, sf::Vector2f(80, 20), -1, "File", 16, file_button_press_function, file_button_press_parameters, file_button_hover_function, file_button_hover_parameters);
+
+        std::vector<std::string> edit_button_press_parameters, edit_button_hover_parameters;
+        auto edit_button_press_function = [this](std::vector<std::string> _parameters) 
+        {
+            printf("press edited button\n");
+        };
+
+
+        auto edit_button_hover_function = [this](std::vector<std::string> _parameters) 
+        {
+            printf("hover edited button\n");
+        };
+        button edit_button(sf::Vector2f(80, 0), 0, sf::Vector2f(80, 20), -1, "Edit", 16, edit_button_press_function, edit_button_press_parameters, edit_button_hover_function, edit_button_hover_parameters);
+
+        std::vector<std::string> room_button_press_parameters, room_button_hover_parameters;
+        auto room_button_press_function = [this](std::vector<std::string> _parameters) 
+        {
+            printf("press room button\n");
+        };
+
+
+        auto room_button_hover_function = [this](std::vector<std::string> _parameters) 
+        {
+
+        };
+        button room_button(sf::Vector2f(160, 0), 0, sf::Vector2f(80, 20), -1, "Room", 16, room_button_press_function, room_button_press_parameters, room_button_hover_function, room_button_hover_parameters);
+
 
         menu_buttons.push_back(file_button);
         menu_buttons.push_back(edit_button);
+        menu_buttons.push_back(room_button);
+
+        
     }
 
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
     {
+        bool is_room_button_hovered = false;
         for(auto i = menu_buttons.begin(); i != menu_buttons.end(); i++)
         {
+            if(i->button_text.getString() == "Room" && i->isHovered)
+            {
+                is_room_button_hovered = true;
+            }
             target.draw(i->button_shape);
             target.draw(i->button_text);
+            
+        }
+
+        for(auto i = room_settings_interface.room_buttons.begin(); i != room_settings_interface.room_buttons.end(); i++)
+        {
+            if(is_room_button_hovered || i->isHovered)
+            {
+                target.draw(i->button_shape);
+                target.draw(i->button_text);
+            }
         }
     }
 
 };
 
-//graphics
 void SFML_logic()
-{
-
-    if(!arial_font.loadFromFile("arial.ttf"))
     {
-        printf("Couldn't load font.\n");
-    }
 
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "Collaborative Notepad - Proiect retele.");
-    menu_interface menu_interface_object;
-
-
-    while (window.isOpen())
-    {
-        sf::Vector2i cursor_position = sf::Mouse::getPosition(window);
-
-        sf::Event event;
-        while (window.pollEvent(event))
+        if(!arial_font.loadFromFile("arial.ttf"))
         {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            printf("Couldn't load font.\n");
         }
 
-        window.clear();
+        sf::RenderWindow window(sf::VideoMode(1280, 720), "Collaborative Notepad - Proiect retele.");
+        menu_interface menu_interface_object;
 
-        //process all the buttons
-        for(auto i = menu_interface_object.menu_buttons.begin(); i != menu_interface_object.menu_buttons.end(); i++)
+
+        while (window.isOpen())
         {
-            //check if mouse is over it
-            if
-            (
-                cursor_position.x >= i->button_shape.getPosition().x && 
-                cursor_position.x <= i->button_shape.getSize().x &&
-                cursor_position.y >= i->button_shape.getPosition().y &&
-                cursor_position.y <= i->button_shape.getSize().y
-            )
+            sf::Vector2i cursor_position = sf::Mouse::getPosition(window);
+
+            sf::Event event;
+            while (window.pollEvent(event))
             {
-                i->on_hover();
-                if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                if (event.type == sf::Event::Closed)
+                    window.close();
+            }
+
+            window.clear();
+            
+            //process all the buttons
+            for(auto i = menu_interface_object.menu_buttons.begin(); i != menu_interface_object.menu_buttons.end(); i++)
+            {
+                //printf("mouse coods: x: %d, y: %d box:collider: x: %f, y: %f, size: x:%f, y:%f\n", cursor_position.x, cursor_position.y, i->button_shape.getPosition().x,
+                //i->button_shape.getPosition().y, i->button_shape.getSize().x, i->button_shape.getSize().y);
+                //check if mouse is over it
+                if
+                (
+                    cursor_position.x >= i->button_shape.getPosition().x && 
+                    cursor_position.x <= i->button_shape.getSize().x + i->button_shape.getPosition().x &&
+                    cursor_position.y >= i->button_shape.getPosition().y &&
+                    cursor_position.y <= i->button_shape.getSize().y + i->button_shape.getPosition().y
+                )
                 {
-                    i->on_press();
+                    i->on_hover();
+                    if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                    {
+                        i->on_press();
+                    }
+                    else
+                    {
+                        i->hasBeenPressed = false;
+                    }
                 }
                 else
                 {
-                    i->hasBeenPressed = false;
+                    i->on_unhover();
                 }
             }
+
+            for(auto i = menu_interface_object.room_settings_interface.room_buttons.begin() ;i != menu_interface_object.room_settings_interface.room_buttons.end(); i++)
+            {
+                //printf("mouse coods: x: %d, y: %d box:collider: x: %f, y: %f, size: x:%f, y:%f\n", cursor_position.x, cursor_position.y, i->button_shape.getPosition().x,
+                //i->button_shape.getPosition().y, i->button_shape.getSize().x, i->button_shape.getSize().y);
+                //check if mouse is over it
+                if
+                (
+                    cursor_position.x >= i->button_shape.getPosition().x && 
+                    cursor_position.x <= i->button_shape.getSize().x + i->button_shape.getPosition().x &&
+                    cursor_position.y >= i->button_shape.getPosition().y &&
+                    cursor_position.y <= i->button_shape.getSize().y + i->button_shape.getPosition().y
+                )
+                {
+                    i->on_hover();
+                    if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                    {
+                        i->on_press();
+                    }
+                    else
+                    {
+                        i->hasBeenPressed = false;
+                    }
+                }
+                else
+                {
+                    i->isHovered = false;
+                }
+            }
+            
+
+            window.draw(menu_interface_object);
+            window.display();
         }
-        
-
-        window.draw(menu_interface_object);
-
-
-
-        window.display();
     }
-}
+
 
 
 
@@ -365,15 +517,14 @@ int main()
 
     std::thread sfml_thread(&SFML_logic);
 
-
     std::vector<command*> commands;
     CommandInitialization(commands);
     printf("Commands initialized!\n");
 
-
-    client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
-    client_object.try_connect();
-    std::thread listen_to_server(&client::listening_to_server_thread, &client_object, 0);
+    client* client_object = &client::instance(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
+    //client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
+    client_object->try_connect();
+    std::thread listen_to_server(&client::listening_to_server_thread);
 
     listen_to_server.detach();
     char input_buffer[1024];
@@ -396,7 +547,7 @@ int main()
             if(trim_str(b_string.substr(0, (b_string.find_first_of(' ')))).compare(trim_str((*i)->get_command_name())) == 0 /* && std::count(b_string.begin(), b_string.end(), ' ') - 1 == i->get_command_args_count() */ )
             {
                 input_params = split_str(b_string);
-                input_params.push_back(std::to_string(client_object.get_client_descriptor()));
+                input_params.push_back(std::to_string(client_object->get_client_descriptor()));
                 (*i)->action(input_params);
                 is_command_valid = true;
                 break;
