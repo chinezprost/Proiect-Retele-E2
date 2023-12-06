@@ -1,7 +1,7 @@
 #!/bin/bash
 
-g++ -c client.cpp
-g++ client.o -o sfml-app -lsfml-graphics -lsfml-window -lsfml-system
-#./sfml-app
+g++ -Wall server.cpp -o server
+lsof -ti tcp:25565 | xargs kill
+./server
 
 exit 0

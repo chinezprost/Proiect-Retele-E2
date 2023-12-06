@@ -39,21 +39,36 @@ private:
     uint16_t client_descriptor;
     sockaddr_in client_object;
 
-    static client client_instance;
+    static client* client_instance;
 
 
 public:
     client(const client& client_object) = delete;
 
-    static client& instance(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, std::string _ip_adress, const uint16_t& _port) {
-        client_instance = client(_sock_type, _sock_stream, _protocol, _ip_adress, _port);
-        return client_instance;
-    }
+    // static client& instance(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, std::string _ip_adress, const uint16_t& _port) {
+    //     client_instance = client(_sock_type, _sock_stream, _protocol, _ip_adress, _port);
+    //     return client_instance;
+    // }
 
-    static client& instance()
-    {
-        return client_instance;
-    }
+    // static client& instance()
+    // {
+    //     return client_instance;
+    // }
+
+    // client(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, std::string _ip_adress, const uint16_t& _port)
+    // {
+    //     client_object.sin_family = _sock_type;
+    //     client_object.sin_addr.s_addr = inet_addr(_ip_adress.c_str());
+    //     client_object.sin_port = htons(_port);
+
+    //     if((client_descriptor = socket(_sock_type, _sock_stream, _protocol)) == -1)
+    //     {
+    //         handle_error("Couldn't create client socket.");
+    //     }
+    //     uint16_t option = 1;
+    //     setsockopt(client_descriptor, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(uint16_t));
+
+    // }
 
     client(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, std::string _ip_adress, const uint16_t& _port)
     {
@@ -68,6 +83,20 @@ public:
         uint16_t option = 1;
         setsockopt(client_descriptor, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(uint16_t));
 
+    }
+
+    static client *instance(const uint16_t& _sock_type, const uint16_t& _sock_stream, const uint16_t& _protocol, std::string _ip_adress, const uint16_t& _port)
+    {
+        if(client_instance == nullptr)
+        {
+            client_instance = new client(_sock_type, _sock_stream, _protocol, _ip_adress, _port);
+        }
+        return client_instance;
+    }
+
+    static client *instance()
+    {
+        return client_instance;
     }
 
     const uint16_t& get_client_descriptor()
@@ -88,8 +117,16 @@ public:
     {
         printf("Connected!\n");
     }
+
+    void send_string(std::string _string)
+    {
+        if(write(client_descriptor, _string.c_str(), 1024) == -1)
+        {
+            handle_error("couldn't send to server\n");
+        }
+    }
     
-    void listening_to_server_thread(uint32_t start_timespan)
+    static void listening_to_server_thread(uint32_t start_timespan)
     {
         int timespan = start_timespan;
         while(true)
@@ -315,6 +352,27 @@ public:
     }
 };
 
+class text_input : public interface_object
+{
+public:
+    sf::Text text_input_string;
+    sf::String client_text_input_string;
+
+    text_input() 
+    {
+        //PLACE HOLDER
+        text_input_string.setFont(arial_font);
+        text_input_string.setPosition(sf::Vector2f(5, 50));
+        text_input_string.setFillColor(sf::Color::White);
+        text_input_string.setCharacterSize(24);
+    }
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        target.draw(text_input_string);
+    }
+};
+
 class menu_interface : public interface_object
 {
 public:
@@ -323,20 +381,34 @@ public:
     {
     public:
         std::vector<button> room_buttons;
-        std::vector<std::string> create_room_press_function, create_room_hover_parameters;
+        std::vector<std::string> create_room_press_parameters, create_room_hover_parameters;
+        std::vector<std::string> join_room_press_parameters, join_room_hover_parameters;
+        
         room_settings()
-            {
+        {
             auto create_room_press_function = [this](std::vector<std::string> _parameters) 
             {
-                printf("Pressed file button\n");
+                client::instance()->send_string("create room");
             };
 
             auto create_room_hover_function = [this](std::vector<std::string> _parameters)
             {
                 printf("On hover file_button\n");
             };
-            button file_button(sf::Vector2f(160, 20), 0, sf::Vector2f(80, 20), -1, "Create", 16, create_room_press_function, create_room_hover_parameters, create_room_hover_function, create_room_hover_parameters);
-            room_buttons.push_back(file_button);
+            button create_room_button(sf::Vector2f(160, 20), 0, sf::Vector2f(80, 20), -1, "Create", 16, create_room_press_function, create_room_press_parameters, create_room_hover_function, create_room_hover_parameters);
+            room_buttons.push_back(create_room_button);
+
+            auto join_room_press_function = [this](std::vector<std::string> _parameters) 
+            {
+                client::instance()->send_string("join room 8B258");
+            };
+
+            auto join_room_hover_function = [this](std::vector<std::string> _parameters)
+            {
+                printf("On hover join_room button\n");
+            };
+            button join_room_button(sf::Vector2f(160, 40), 0, sf::Vector2f(80, 20), -1, "Join", 16, join_room_press_function, join_room_press_parameters, join_room_hover_function, join_room_hover_parameters);
+            room_buttons.push_back(join_room_button);
         }
     };
 
@@ -374,7 +446,7 @@ public:
         std::vector<std::string> room_button_press_parameters, room_button_hover_parameters;
         auto room_button_press_function = [this](std::vector<std::string> _parameters) 
         {
-            printf("press room button\n");
+            
         };
 
 
@@ -410,9 +482,13 @@ public:
         for(auto i = room_settings_interface.room_buttons.begin(); i != room_settings_interface.room_buttons.end(); i++)
         {
             if(is_room_button_hovered || i->isHovered)
-            {
-                target.draw(i->button_shape);
-                target.draw(i->button_text);
+            for(auto j = room_settings_interface.room_buttons.begin(); j != room_settings_interface.room_buttons.end(); j++)
+            {   
+                if(is_room_button_hovered || i->isHovered)
+                {
+                    target.draw(j->button_shape);
+                    target.draw(j->button_text);
+                }
             }
         }
     }
@@ -430,6 +506,8 @@ void SFML_logic()
         sf::RenderWindow window(sf::VideoMode(1280, 720), "Collaborative Notepad - Proiect retele.");
         menu_interface menu_interface_object;
 
+        text_input text_input_object;
+
 
         while (window.isOpen())
         {
@@ -439,7 +517,15 @@ void SFML_logic()
             while (window.pollEvent(event))
             {
                 if (event.type == sf::Event::Closed)
+                {
                     window.close();
+                }
+
+                if(event.type == sf::Event::TextEntered)
+                {
+                    text_input_object.client_text_input_string += event.text.unicode;
+                    text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
+                }
             }
 
             window.clear();
@@ -505,26 +591,29 @@ void SFML_logic()
             
 
             window.draw(menu_interface_object);
+            window.draw(text_input_object);
+
             window.display();
         }
     }
 
 
-
+client* client::client_instance = nullptr;
 
 int main()
 {
 
     std::thread sfml_thread(&SFML_logic);
+    sfml_thread.detach();
 
     std::vector<command*> commands;
     CommandInitialization(commands);
     printf("Commands initialized!\n");
 
-    client* client_object = &client::instance(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
+    client* client_object = client::instance(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25564);
     //client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
     client_object->try_connect();
-    std::thread listen_to_server(&client::listening_to_server_thread);
+    std::thread listen_to_server(&client::listening_to_server_thread, 0);
 
     listen_to_server.detach();
     char input_buffer[1024];
