@@ -18,6 +18,7 @@
 #include <iterator>
 #include <sstream>
 #include <SFML/Graphics.hpp>
+#include <set>
 
 #define handle_error(x) {perror(x); exit(0);}
 
@@ -28,9 +29,9 @@
 static sf::Font arial_font;
 
 
+// antet
 
-
-
+void update_notepad(const std::string& _string);
 
 
 class client
@@ -129,11 +130,19 @@ public:
     static void listening_to_server_thread(uint32_t start_timespan)
     {
         int timespan = start_timespan;
+        char received_string[1024];
         while(true)
         {
-            
-            printf("Listening to the server. Current timespan: %d\n", timespan += 1);
-            sleep(1000);
+            if(recv(client::instance()->client_descriptor, received_string, sizeof(received_string), 0) == -1)
+            {
+                handle_error("Couldn't receive message from server.\n");
+            }
+            printf("%s\n", received_string);
+            if(std::string(received_string).substr(0, 7) == "update:")
+            {
+                //std::cout << std::string(received_string).substr(8) << '\n';
+                update_notepad(std::string(received_string).substr(8));
+            }
         }
     }
 };
@@ -260,17 +269,41 @@ std::string trim_str(const std::string& _string_to_trim)
     return _string_to_trim.substr(pos_left, (pos_right - pos_left + 1));
 }
 
+
+void _show(sf::Shape* _shape)
+{
+    printf("pos-x: %f, pos-y: %f, rot: %f, size-x: %f, size-y: %f, color:%d %d %d %d\n",
+    _shape->getPosition().x, _shape->getPosition().y, _shape->getRotation(), static_cast<sf::RectangleShape*>(_shape)->getSize().x, static_cast<sf::RectangleShape*>(_shape)->getSize().y, _shape->getFillColor().r, _shape->getFillColor().g, _shape->getFillColor().b, _shape->getFillColor().a);
+}
+
 //sfml-graphic
 class interface_object : public sf::Drawable
 {
 public:
+    sf::Shape* interface_object_drawable;
+
     sf::Vector2f position;
     sf::Vector2f size;
+    sf::Vector2f color;
 
     float rotation;
     uint8_t thickness = 0;
     interface_object() = default;
-    interface_object(sf::Vector2f _position, float _rotation, sf::Vector2f _size, uint8_t thickness) : position(_position), rotation(_rotation), size(_size) {}
+    interface_object(const sf::Vector2f& _position, const float& _rotation, const sf::Vector2f& _size, const uint8_t& _thickness, const sf::Color& _color) : position(_position), rotation(_rotation), size(_size), thickness(_thickness) {}
+    interface_object(const sf::Vector2f& _position, const float& _rotation, const uint8_t& _thickness, const sf::Color& _color, sf::Shape* _interface_object_drawable) : position(_position), rotation(_rotation), thickness(_thickness)
+    {
+        interface_object_drawable = _interface_object_drawable;
+        interface_object_drawable->setPosition(_position);
+        interface_object_drawable->setRotation(_rotation);
+        interface_object_drawable->setFillColor(_color);
+        interface_object_drawable->setOutlineThickness(_thickness);
+    }
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        // _show(this->interface_object_drawable);
+        target.draw(*(this->interface_object_drawable));
+    }
 };
 
 class button : public interface_object
@@ -298,11 +331,12 @@ public:
         std::vector<std::string> _function_on_press_parameters = {}, 
         std::function<void(std::vector<std::string>)> _on_hover_function = nullptr, 
         std::vector<std::string> _function_on_hover_parameters = {}
-    ) : interface_object(_position, _rotation, _size, _thickness)
+    ) : interface_object(_position, _rotation, _size, _thickness, sf::Color::White)
     
     {
         button_shape.setSize(size);
-        button_shape.setOutlineColor(sf::Color::Green);
+        button_shape.setOutlineColor(sf::Color::White);
+        button_shape.setFillColor(sf::Color::White);
         button_shape.setOutlineThickness(thickness);
         button_shape.setPosition(position);
         button_shape.setRotation(rotation);
@@ -395,7 +429,7 @@ public:
             {
                 printf("On hover file_button\n");
             };
-            button create_room_button(sf::Vector2f(160, 20), 0, sf::Vector2f(80, 20), -1, "Create", 16, create_room_press_function, create_room_press_parameters, create_room_hover_function, create_room_hover_parameters);
+            button create_room_button(sf::Vector2f(160, 20), 0, sf::Vector2f(80, 20), 0, "Create", 16, create_room_press_function, create_room_press_parameters, create_room_hover_function, create_room_hover_parameters);
             room_buttons.push_back(create_room_button);
 
             auto join_room_press_function = [this](std::vector<std::string> _parameters) 
@@ -407,7 +441,7 @@ public:
             {
                 printf("On hover join_room button\n");
             };
-            button join_room_button(sf::Vector2f(160, 40), 0, sf::Vector2f(80, 20), -1, "Join", 16, join_room_press_function, join_room_press_parameters, join_room_hover_function, join_room_hover_parameters);
+            button join_room_button(sf::Vector2f(160, 40), 0, sf::Vector2f(80, 20), 0, "Join", 16, join_room_press_function, join_room_press_parameters, join_room_hover_function, join_room_hover_parameters);
             room_buttons.push_back(join_room_button);
         }
     };
@@ -428,7 +462,7 @@ public:
         {
             printf("On hover file_button\n");
         };
-        button file_button(sf::Vector2f(0, 0), 0, sf::Vector2f(80, 20), -1, "File", 16, file_button_press_function, file_button_press_parameters, file_button_hover_function, file_button_hover_parameters);
+        button file_button(sf::Vector2f(0, 0), 0, sf::Vector2f(80, 20), 0, "File", 16, file_button_press_function, file_button_press_parameters, file_button_hover_function, file_button_hover_parameters);
 
         std::vector<std::string> edit_button_press_parameters, edit_button_hover_parameters;
         auto edit_button_press_function = [this](std::vector<std::string> _parameters) 
@@ -441,7 +475,7 @@ public:
         {
             printf("hover edited button\n");
         };
-        button edit_button(sf::Vector2f(80, 0), 0, sf::Vector2f(80, 20), -1, "Edit", 16, edit_button_press_function, edit_button_press_parameters, edit_button_hover_function, edit_button_hover_parameters);
+        button edit_button(sf::Vector2f(80, 0), 0, sf::Vector2f(80, 20), 0, "Edit", 16, edit_button_press_function, edit_button_press_parameters, edit_button_hover_function, edit_button_hover_parameters);
 
         std::vector<std::string> room_button_press_parameters, room_button_hover_parameters;
         auto room_button_press_function = [this](std::vector<std::string> _parameters) 
@@ -454,7 +488,7 @@ public:
         {
 
         };
-        button room_button(sf::Vector2f(160, 0), 0, sf::Vector2f(80, 20), -1, "Room", 16, room_button_press_function, room_button_press_parameters, room_button_hover_function, room_button_hover_parameters);
+        button room_button(sf::Vector2f(160, 0), 0, sf::Vector2f(80, 20), 0, "Room", 16, room_button_press_function, room_button_press_parameters, room_button_hover_function, room_button_hover_parameters);
 
 
         menu_buttons.push_back(file_button);
@@ -495,24 +529,65 @@ public:
 
 };
 
+class static_interface_class : public sf::Drawable
+{
+    std::vector<interface_object> static_interface_objects;
+public:
+    static_interface_class() = default;
+    void create_static_interface_object(const sf::Vector2f _position, const float& _rotation, const float& _thickness, const sf::Color& _color, sf::Shape* _shape)
+    {
+        interface_object static_navbar(_position, _rotation, _thickness, _color, _shape);
+        static_interface_objects.push_back(static_navbar);
+    }
+
+    void static_object_init()
+    {
+        this->create_static_interface_object(sf::Vector2f(240, 0), 0.0, 0, sf::Color(255, 255, 255, 255), new sf::RectangleShape(sf::Vector2f(1280-240, 20))); //navbar
+        this->create_static_interface_object(sf::Vector2f(0, 20), 0.0, 0, sf::Color(39, 40, 34, 255), new sf::RectangleShape(sf::Vector2f(1280, 720)));
+    }
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        for(auto i = static_interface_objects.begin(); i != static_interface_objects.end(); i++)
+        {
+            i->draw(target, states);
+        }
+    }
+};
+
+
+text_input text_input_object;
+
+void update_notepad(const std::string& _string)
+{
+    text_input_object.text_input_string.setString(_string);
+    text_input_object.client_text_input_string = _string;
+}
+
 void SFML_logic()
     {
-
         if(!arial_font.loadFromFile("arial.ttf"))
         {
             printf("Couldn't load font.\n");
         }
 
-        sf::RenderWindow window(sf::VideoMode(1280, 720), "Collaborative Notepad - Proiect retele.");
+        sf::RenderWindow window(sf::VideoMode(680, 400), "Collaborative Notepad - Proiect retele.");
+        window.setFramerateLimit(60);
+
         menu_interface menu_interface_object;
 
-        text_input text_input_object;
+        static_interface_class static_objects;
+        static_objects.static_object_init();
 
+        
+        sf::RectangleShape text_input_cursor(sf::Vector2f(3,20));
+        int text_input_cursor_position = 0;
+
+        bool has_updated_notepad = false;
 
         while (window.isOpen())
         {
             sf::Vector2i cursor_position = sf::Mouse::getPosition(window);
-
             sf::Event event;
             while (window.pollEvent(event))
             {
@@ -523,12 +598,50 @@ void SFML_logic()
 
                 if(event.type == sf::Event::TextEntered)
                 {
-                    text_input_object.client_text_input_string += event.text.unicode;
-                    text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace))
+                    {
+                        if(text_input_object.client_text_input_string.getSize() > 0)
+                        {
+                            text_input_object.client_text_input_string.erase(text_input_cursor_position-1);
+                            text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
+                            text_input_cursor_position -= 1;
+                        }
+                    }
+                    else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+                    {
+                        text_input_object.client_text_input_string.insert(text_input_cursor_position, '\n');
+                        text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
+                        text_input_cursor_position += 1;
+                    }
+                    else
+                    {
+                        text_input_object.client_text_input_string.insert(text_input_cursor_position, event.text.unicode);
+                        text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
+                        text_input_cursor_position += 1;
+                    }
+                    has_updated_notepad = true;
                 }
-            }
 
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+                {
+                    if(text_input_cursor_position > 0)
+                        text_input_cursor_position -= 1;
+
+                    has_updated_notepad = true;
+                }
+
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+                {
+                    if(text_input_cursor_position < text_input_object.client_text_input_string.getSize())
+                        text_input_cursor_position += 1;
+
+                    has_updated_notepad = true;
+                }
+
+            }
             window.clear();
+            text_input_cursor.setPosition(text_input_object.text_input_string.findCharacterPos(text_input_cursor_position) + sf::Vector2f(0, 5));
+            //printf("%d, x: %f, y: %f\n", text_input_cursor_position, text_input_object.text_input_string.findCharacterPos(text_input_cursor_position).x, text_input_object.text_input_string.findCharacterPos(text_input_cursor_position).y);
             
             //process all the buttons
             for(auto i = menu_interface_object.menu_buttons.begin(); i != menu_interface_object.menu_buttons.end(); i++)
@@ -589,11 +702,25 @@ void SFML_logic()
                 }
             }
             
+            window.draw(static_objects);
 
             window.draw(menu_interface_object);
             window.draw(text_input_object);
 
+
+            window.draw(text_input_cursor);
+            
+
             window.display();
+
+            char message_to_be_sent[1024];
+            sprintf(message_to_be_sent, "update-notepad:%s\0", text_input_object.client_text_input_string.toAnsiString().c_str());
+
+            if(has_updated_notepad)
+            {
+                client::instance()->send_string(std::string(message_to_be_sent));
+                has_updated_notepad = false;
+            }
         }
     }
 
@@ -610,7 +737,7 @@ int main()
     CommandInitialization(commands);
     printf("Commands initialized!\n");
 
-    client* client_object = client::instance(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25564);
+    client* client_object = client::instance(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25565);
     //client client_object(AF_INET, SOCK_STREAM, 0, "127.0.0.1", 25561);
     client_object->try_connect();
     std::thread listen_to_server(&client::listening_to_server_thread, 0);
@@ -651,8 +778,4 @@ int main()
 
 
     printf("OK\n");
-
-
-
-    
 }

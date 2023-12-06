@@ -59,10 +59,28 @@ public:
     std::string room_number;
     uint16_t client1_fd, client2_fd;
 
+    std::string notepad_collab = "";
+
     client_room(const std::string& _room_number, uint16_t _client1_fd)
     {
         room_number = _room_number;
         client1_fd = _client1_fd;
+    }
+
+
+    void update_notepad_for_clients()
+    {
+        std::string to_update = "update:";
+        to_update += notepad_collab;
+        if(send(client1_fd, to_update.c_str(), 1024, 0) == -1)
+        {
+            handle_error("Couldn't update notepad for host_client\n");
+        }
+
+        if(send(client2_fd, to_update.c_str(), 1024, 0) == -1)
+        {
+            handle_error("Couldn't update notepad for joined_client\n");
+        }
     }
 };
 
@@ -138,16 +156,18 @@ public:
         return true; //TODO!
     }
 
-    void create_room(const uint16_t& _client_fd)
+    std::string create_room(const uint16_t& _client_fd)
     {
         printf("Begin\n");
         std::string room_id = random_string();
         client_rooms.push_back(new client_room(room_id, _client_fd));
 
         printf("Room with ID: %s has been created by Client: %d\n", room_id.c_str(), _client_fd);
+
+        return room_id;
     }
 
-    void join_room(const uint16_t& _client_fd, const std::string& _room_code)
+    client_room* join_room(const uint16_t& _client_fd, const std::string& _room_code)
     {
         client_room* found_room_object = nullptr;
         for(auto i = client_rooms.begin(); i != client_rooms.end(); i++)
@@ -161,12 +181,12 @@ public:
         if(found_room_object == nullptr)
         {
             printf("Couldn't find room!");
-            return;
+            return nullptr;
         }
 
         found_room_object->client2_fd = _client_fd;
-
         printf("User joined room created\n");
+        return found_room_object;
     }
 
     void on_connected_client()
@@ -194,10 +214,13 @@ void create_room()
     printf("Room created\n");
 }
 
+
 class client_thread
 {
 public:
     int8_t client_descriptor = undefined;
+    bool has_joined_room = false;
+    client_room* joined_room;
 
     void operator()(const std::vector<std::string>& thread_parameters)
     {
@@ -210,20 +233,41 @@ public:
         {
             recv(client_descriptor, internal_buffer, sizeof(internal_buffer), 0);
             printf("Received from client: %d the message: %s\n", client_descriptor, internal_buffer);
-            internal_buffer[strcspn(internal_buffer, "\n")] = '\0';
+            internal_buffer[strlen(internal_buffer)] = '\0';
             std::string internal_buffer_string(internal_buffer);
             if(internal_buffer_string == "create room")
             {
-                server::instance()->create_room(client_descriptor);
-            } else if(internal_buffer_string.substr(0, 9) == "join room")
+                std::string created_room_id = server::instance()->create_room(client_descriptor);
+                printf("created\n");
+                //server::instance()->join_room(client_descriptor, created_room_id);
+            } 
+            else if(internal_buffer_string.substr(0, 9) == "join room")
             {
-                server::instance()->join_room(client_descriptor, internal_buffer_string.substr(10, 14));
+                joined_room = server::instance()->join_room(client_descriptor, internal_buffer_string.substr(10, 14));
+                if(joined_room == nullptr)
+                {
+                    printf("Client %d couldn't find room.\n", client_descriptor);
+                }
+                else
+                {
+                    printf("Client %d has joined room.", client_descriptor);
+                }
+            }
+            else if(internal_buffer_string.substr(0, 6) == "update")
+            {
+                if(joined_room != nullptr)
+                {
+                    printf("to send: %s\n", internal_buffer_string.substr(14).c_str());
+                    joined_room->notepad_collab = internal_buffer_string.substr(14);
+                }
+                if(joined_room != nullptr)
+                    joined_room->update_notepad_for_clients();
             }
             else
             {
                 printf("fail\n");
             }
-            std::string received_string(internal_buffer);
+            
         }
     }
 };
@@ -279,7 +323,7 @@ int main()
 {
     signal_handler_logic();
 
-    server* server_object = server::instance(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25564, 32);
+    server* server_object = server::instance(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25565, 32);
     server_socket_descriptor = server_object->get_server_descriptor();
     printf("%d\n", server_socket_descriptor);
     int8_t connected_client_descriptor = undefined;
