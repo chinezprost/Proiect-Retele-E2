@@ -24,10 +24,14 @@
 
 #define undefined -1
 
+const uint16_t WINDOW_WIDTH = 800;
+const uint16_t WINDOW_HEIGHT = 640;
+
 //static variables
 
 static sf::Font arial_font;
 
+bool draw_popup_window = true;
 
 // antet
 
@@ -434,7 +438,7 @@ public:
 
             auto join_room_press_function = [this](std::vector<std::string> _parameters) 
             {
-                client::instance()->send_string("join room 8B258");
+                draw_popup_window = true;
             };
 
             auto join_room_hover_function = [this](std::vector<std::string> _parameters)
@@ -556,6 +560,116 @@ public:
 };
 
 
+class popup_window : public interface_object
+{
+public:
+    std::vector<button> popup_window_buttons;
+    sf::RectangleShape popup_window_shape;
+    sf::RectangleShape popup_window_shape_shadow;
+    sf::RectangleShape popup_input_box_shape;
+
+    sf::Vector2f position;
+    sf::Vector2f size;
+
+    sf::Text popup_window_text;
+
+    text_input input_text_box;
+
+    bool has_valid_confirm_message = false;
+
+    std::string on_confirm = "confirm:";
+
+
+    std::vector<std::string> confirm_button_press_parameters, confirm_button_hover_parameters;
+
+    popup_window(const sf::Vector2f& _position, const float& _rotation, const sf::Vector2f& _size, const uint8_t& _thickness, const std::string& _popup_text) : interface_object(_position, _rotation, _size, _thickness, sf::Color::White)
+    {
+        position = _position;
+        size = _size;
+
+        popup_window_shape = sf::RectangleShape();
+        popup_window_shape.setPosition(_position);
+        popup_window_shape.setRotation(_rotation);
+        popup_window_shape.setSize(_size);
+        popup_window_shape.setOutlineThickness(_thickness);
+
+
+        popup_window_shape_shadow = sf::RectangleShape();
+        popup_window_shape_shadow.setPosition(_position - sf::Vector2f(3, -3));
+        popup_window_shape_shadow.setFillColor(sf::Color(200,200,200,200));
+        popup_window_shape_shadow.setRotation(_rotation);
+        popup_window_shape_shadow.setSize(_size);
+        popup_window_shape_shadow.setOutlineThickness(_thickness);
+
+        popup_input_box_shape = sf::RectangleShape();
+        popup_input_box_shape.setPosition(_position + sf::Vector2f(5, 40));
+        popup_input_box_shape.setFillColor(sf::Color(100,100,100,200));
+        popup_input_box_shape.setRotation(_rotation);
+        popup_input_box_shape.setSize(_size - sf::Vector2f(15, _size.y / 1.1));
+        popup_input_box_shape.setOutlineThickness(_thickness);
+
+
+
+        popup_window_text.setPosition(_position + sf::Vector2f(10,10));
+        popup_window_text.setFont(arial_font);
+        popup_window_text.setCharacterSize(14);
+        popup_window_text.setFillColor(sf::Color::Black);
+        popup_window_text.setString(_popup_text);
+
+        auto create_room_press_function = [this](std::vector<std::string> _parameters) 
+        {
+            if(has_valid_confirm_message)
+            {
+                on_confirm += _parameters[0];
+                if(_parameters[0].substr(8, 16) == "join room")
+                {
+                    on_confirm += _parameters[0];
+                    client::instance()->send_string(on_confirm.substr(8,23));
+                }
+                else
+                {
+                    client::instance()->send_string(on_confirm);
+                }
+            }
+            else
+            {
+                printf("No valid confirm input.\n");
+            }
+        };
+
+        auto create_room_hover_function = [this](std::vector<std::string> _parameters)
+        {
+            printf("On hover confirm button\n");
+        };
+        button create_room_button(position + sf::Vector2f(size.x/2, size.y/2), 0, sf::Vector2f(80, 20), 0, "Confirm", 16, create_room_press_function, confirm_button_press_parameters, create_room_hover_function, confirm_button_hover_parameters);
+        create_room_button.button_shape.setFillColor(sf::Color::Blue);
+        this->popup_window_buttons.push_back(create_room_button);
+    }
+
+    void set_confirm_string(const std::string& _string)
+    {
+        confirm_button_press_parameters.push_back(_string);
+        has_valid_confirm_message = true;
+    }
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        if(draw_popup_window)
+            {
+            
+            target.draw(popup_window_shape_shadow);
+            target.draw(popup_window_shape);
+            for(auto i = popup_window_buttons.begin(); i != popup_window_buttons.end(); i++)
+            {
+                target.draw(i->button_shape);
+            }
+            target.draw(popup_input_box_shape);
+            target.draw(popup_window_text);
+        }
+    }
+};
+
+
 text_input text_input_object;
 
 void update_notepad(const std::string& _string)
@@ -571,12 +685,15 @@ void SFML_logic()
             printf("Couldn't load font.\n");
         }
 
-        sf::RenderWindow window(sf::VideoMode(680, 400), "Collaborative Notepad - Proiect retele.");
+        sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Collaborative Notepad - Proiect retele.");
         window.setFramerateLimit(60);
 
         menu_interface menu_interface_object;
 
         static_interface_class static_objects;
+
+        popup_window popup_window_object(sf::Vector2f(WINDOW_WIDTH/2 - WINDOW_WIDTH/8, WINDOW_HEIGHT/2 - WINDOW_HEIGHT/4), 0.0, sf::Vector2f(WINDOW_WIDTH/4,WINDOW_HEIGHT/4), 0, "Enter room code:");
+
         static_objects.static_object_init();
 
         
@@ -707,14 +824,14 @@ void SFML_logic()
             window.draw(menu_interface_object);
             window.draw(text_input_object);
 
-
+            window.draw(popup_window_object);
             window.draw(text_input_cursor);
             
 
             window.display();
 
             char message_to_be_sent[1024];
-            sprintf(message_to_be_sent, "update-notepad:%s\0", text_input_object.client_text_input_string.toAnsiString().c_str());
+            sprintf(message_to_be_sent, "update-notepad:%s", text_input_object.client_text_input_string.toAnsiString().c_str());
 
             if(has_updated_notepad)
             {
