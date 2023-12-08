@@ -93,14 +93,9 @@ private:
     uint16_t max_clients = undefined;
     sockaddr_in server_object;
     std::vector<std::thread> connected_clients_threads;
-
     static server* server_instance;
-
 public:
-
     std::vector<client_room*> client_rooms;
-
-
     server(const server& server_object) = delete;
 
     std::array<uint16_t, 128> connected_clients_fds;
@@ -226,8 +221,6 @@ public:
     {
         client_descriptor = std::stoi(thread_parameters.at(0));
         char internal_buffer[1024];
-
-
         while(true)
         {
             recv(client_descriptor, internal_buffer, sizeof(internal_buffer), 0);
@@ -245,11 +238,19 @@ public:
                 joined_room = server::instance()->join_room(client_descriptor, internal_buffer_string.substr(9, 14));
                 if(joined_room == nullptr)
                 {
-                    printf("Client %d couldn't find room.\n", client_descriptor);
+                    std::string _to_be_sent = "cntroom";
+                    if(send(client_descriptor, _to_be_sent.c_str(), 1024, 0) == -1)
+                    {
+                        handle_error("Couldn't respond to the client.\n");
+                    }
                 }
                 else
                 {
-                    printf("Client %d has joined room.", client_descriptor);
+                    std::string _to_be_sent = "fndroom";
+                    if(send(client_descriptor, _to_be_sent.c_str(), 1024, 0) == -1)
+                    {
+                        handle_error("Couldn't respond to the client.\n");
+                    }
                 }
             }
             else if(internal_buffer_string.substr(0, 6) == "update")
@@ -262,7 +263,21 @@ public:
                 if(joined_room != nullptr)
                     joined_room->update_notepad_for_clients();
             }
-            else
+            else if(internal_buffer_string == "lv_room")
+            {
+                if(joined_room != nullptr)
+                {
+                    if(joined_room->client1_fd == client_descriptor)
+                    {
+                        joined_room->client1_fd = -1;
+                    }
+                    if(joined_room->client2_fd == client_descriptor)
+                    {
+                        joined_room->client2_fd = -1;
+                    }
+                }
+                joined_room = nullptr;
+            }
             {
                 printf("fail\n");
             }

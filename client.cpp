@@ -30,6 +30,19 @@ const uint16_t WINDOW_HEIGHT = 640;
 //static variables
 
 static sf::Font arial_font;
+sf::Text status_text;
+
+std::string current_room_id;
+
+enum current_state_enum
+{
+    NOT_CONNECTED,
+    CONNECTED_TO_SERVER,
+    CONNECTED_TO_ROOM,
+    CANT_FIND_ROOM
+};
+
+current_state_enum current_status = current_state_enum::NOT_CONNECTED;
 
 bool draw_popup_window = false;
 std::string popup_window_string = "";
@@ -143,6 +156,15 @@ public:
                 handle_error("Couldn't receive message from server.\n");
             }
             printf("%s\n", received_string);
+            if(std::string(received_string) == "cntroom")
+            {
+                current_status = current_state_enum::CANT_FIND_ROOM;
+            }
+            if(std::string(received_string) == "fndroom")
+            {
+                printf("joined room");
+                current_status = current_state_enum::CONNECTED_TO_ROOM;   
+            }
             if(std::string(received_string).substr(0, 7) == "update:")
             {
                 std::cout << std::string(received_string).substr(8) << '\n';
@@ -422,6 +444,7 @@ public:
         std::vector<button> room_buttons;
         std::vector<std::string> create_room_press_parameters, create_room_hover_parameters;
         std::vector<std::string> join_room_press_parameters, join_room_hover_parameters;
+        std::vector<std::string> leave_room_press_parameters, leave_room_hover_parameters;
         
         room_settings()
         {
@@ -448,6 +471,19 @@ public:
             };
             button join_room_button(sf::Vector2f(160, 40), 0, sf::Vector2f(80, 20), 0, "Join", 16, join_room_press_function, join_room_press_parameters, join_room_hover_function, join_room_hover_parameters);
             room_buttons.push_back(join_room_button);
+
+            auto leave_room_press_function = [this](std::vector<std::string> _parameters) 
+            {
+                client::instance()->send_string("lv_room");
+                current_status = current_state_enum::CONNECTED_TO_SERVER;
+            };
+
+            auto leave_room_hover_function = [this](std::vector<std::string> _parameters)
+            {
+                printf("On hover leave room button\n");
+            };
+            button leave_room_button(sf::Vector2f(160, 60), 0, sf::Vector2f(80, 20), 0, "Leave", 16, leave_room_press_function, leave_room_press_parameters, leave_room_hover_function, leave_room_hover_parameters);
+            room_buttons.push_back(leave_room_button);
         }
     };
 
@@ -477,7 +513,6 @@ public:
             auto download_button_press_function = [this](std::vector<std::string> _parameters) 
             {
                 printf("On press download button.\n");
-
             };
 
             auto download_button_hover_function = [this](std::vector<std::string> _parameters)
@@ -661,14 +696,11 @@ public:
     sf::RectangleShape popup_window_shape;
     sf::RectangleShape popup_window_shape_shadow;
     sf::RectangleShape popup_input_box_shape;
-
     sf::Vector2f position;
     sf::Vector2f size;
-
     sf::Text popup_window_text;
 
     text_input input_text_box;
-
     bool has_valid_confirm_message = false;
     sf::Text confirm_button_text = sf::Text("Confirm", arial_font, 16);
     std::string on_confirm = "confirm:";
@@ -773,8 +805,13 @@ void SFML_logic()
         window.setSize(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT));
 
         menu_interface menu_interface_object;
-
         static_interface_class static_objects;
+
+        status_text.setPosition(sf::Vector2f(WINDOW_WIDTH - 150, -3));
+        status_text.setFont(arial_font);
+        status_text.setCharacterSize(20);
+        status_text.setFillColor(sf::Color::Red);
+        status_text.setString("Not connected");
 
         popup_window popup_window_object(sf::Vector2f(WINDOW_WIDTH/2 - WINDOW_WIDTH/8, WINDOW_HEIGHT/2 - WINDOW_HEIGHT/4), 0.0, sf::Vector2f(WINDOW_WIDTH/4,WINDOW_HEIGHT/4), 0, "Enter room code:");
 
@@ -790,6 +827,47 @@ void SFML_logic()
         {
             sf::Vector2i cursor_position = sf::Mouse::getPosition(window);
             sf::Event event;
+
+            switch(current_status)
+            {
+                case current_state_enum::NOT_CONNECTED:
+                {
+                    if(status_text.getString().toAnsiString().compare("Not connected.") != 0)
+                        status_text.setString("Not connected.");
+
+                    status_text.setPosition(WINDOW_WIDTH - status_text.getLocalBounds().width - 5, -3);
+                }
+                break;
+
+                case current_state_enum::CONNECTED_TO_SERVER:
+                {
+                    if(status_text.getString().toAnsiString().compare("Connected to the server.") != 0)
+                        status_text.setString("Connected.");
+                    
+                    status_text.setPosition(WINDOW_WIDTH - status_text.getLocalBounds().width - 5, -3);
+                }
+                break;
+
+                case current_state_enum::CONNECTED_TO_ROOM:
+                {
+                    std::string _room_to_be_set("Connected to room: ");
+                    _room_to_be_set += popup_window_string;
+                    status_text.setString(_room_to_be_set);
+                    status_text.setFillColor(sf::Color::Green);
+                    status_text.setPosition(WINDOW_WIDTH - status_text.getLocalBounds().width - 5, -3);
+                }
+                break;
+
+                case current_state_enum::CANT_FIND_ROOM:
+                {
+                    std::string _room_to_be_set("Room doesn't exist.");
+                    status_text.setString(_room_to_be_set);
+                    status_text.setFillColor(sf::Color(255, 165, 0, 255));
+                    status_text.setPosition(WINDOW_WIDTH - status_text.getLocalBounds().width - 5, -3);
+                }
+                break;
+            }
+
             while (window.pollEvent(event))
             {
                 if (event.type == sf::Event::Closed)
@@ -986,6 +1064,8 @@ void SFML_logic()
 
             window.draw(popup_window_object);
             window.draw(text_input_cursor);
+
+            window.draw(status_text);
             
 
             window.display();
@@ -1023,14 +1103,12 @@ int main(int argc, char* argv[])
     char input_buffer[1024];
     while(true)
     {
-
         fgets(input_buffer, sizeof(input_buffer), stdin);
         input_buffer[strcspn(input_buffer, "\n")] = '\0';
         std::string b_string = input_buffer;
         std::vector<std::string> input_params;
 
         std::transform(b_string.begin(), b_string.end(), b_string.begin(), [](unsigned char c) { return std::tolower(c); });
-        
 
         bool is_command_valid = false;
 
