@@ -225,7 +225,6 @@ public:
     void operator()(const std::vector<std::string>& thread_parameters)
     {
         client_descriptor = std::stoi(thread_parameters.at(0));
-        uint16_t communication_channel_descriptor = undefined;
         char internal_buffer[1024];
 
 
@@ -243,7 +242,7 @@ public:
             } 
             else if(internal_buffer_string.substr(0, 9) == "join room")
             {
-                joined_room = server::instance()->join_room(client_descriptor, internal_buffer_string.substr(10, 14));
+                joined_room = server::instance()->join_room(client_descriptor, internal_buffer_string.substr(9, 14));
                 if(joined_room == nullptr)
                 {
                     printf("Client %d couldn't find room.\n", client_descriptor);
@@ -319,11 +318,12 @@ void on_server_close()
 server* server::server_instance = nullptr;
 
 
-int main()
+int main(int argc, char* argv[])
 {
     signal_handler_logic();
 
-    server* server_object = server::instance(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25565, 32);
+    int TEMPORARY_FIX = atoi(argv[1]);
+    server* server_object = server::instance(AF_INET, SOCK_STREAM, 0, INADDR_ANY, TEMPORARY_FIX, 32);
     server_socket_descriptor = server_object->get_server_descriptor();
     printf("%d\n", server_socket_descriptor);
     int8_t connected_client_descriptor = undefined;
