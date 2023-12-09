@@ -15,7 +15,6 @@
 #include <thread>
 #include <threads.h>
 #include <signal.h>
-#include <SFML/Graphics.hpp>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -231,7 +230,13 @@ public:
             {
                 std::string created_room_id = server::instance()->create_room(client_descriptor);
                 printf("created\n");
-                //server::instance()->join_room(client_descriptor, created_room_id);
+                joined_room = server::instance()->join_room(client_descriptor, created_room_id);
+                std::string _to_be_sent = "fncroom";
+                _to_be_sent += created_room_id;
+                if(send(client_descriptor, _to_be_sent.c_str(), 1024, 0) == -1)
+                {
+                    handle_error("Couldn't respond to the client.\n");
+                }
             } 
             else if(internal_buffer_string.substr(0, 9) == "join room")
             {
@@ -259,9 +264,9 @@ public:
                 {
                     printf("to send: %s\n", internal_buffer_string.substr(14).c_str());
                     joined_room->notepad_collab = internal_buffer_string.substr(14);
-                }
-                if(joined_room != nullptr)
                     joined_room->update_notepad_for_clients();
+                }
+
             }
             else if(internal_buffer_string == "lv_room")
             {
@@ -278,12 +283,15 @@ public:
                 }
                 joined_room = nullptr;
             }
+            else if(internal_buffer_string == "uptcur")
             {
+                
                 printf("fail\n");
             }
             
         }
     }
+
 };
 
 // class server_processing_thread

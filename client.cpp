@@ -160,9 +160,16 @@ public:
             {
                 current_status = current_state_enum::CANT_FIND_ROOM;
             }
-            if(std::string(received_string) == "fndroom")
+            if(std::string(received_string).find("fndroom") != std::string::npos)
             {
                 printf("joined room");
+                current_status = current_state_enum::CONNECTED_TO_ROOM;   
+            }
+            if(std::string(received_string).find("fncroom") != std::string::npos)
+            {
+                printf("joined room");
+                current_room_id = std::string(received_string).substr(7);
+                printf("%s\n", current_room_id.c_str());
                 current_status = current_state_enum::CONNECTED_TO_ROOM;   
             }
             if(std::string(received_string).substr(0, 7) == "update:")
@@ -851,7 +858,7 @@ void SFML_logic()
                 case current_state_enum::CONNECTED_TO_ROOM:
                 {
                     std::string _room_to_be_set("Connected to room: ");
-                    _room_to_be_set += popup_window_string;
+                    _room_to_be_set += current_room_id;
                     status_text.setString(_room_to_be_set);
                     status_text.setFillColor(sf::Color::Green);
                     status_text.setPosition(WINDOW_WIDTH - status_text.getLocalBounds().width - 5, -3);
@@ -901,10 +908,9 @@ void SFML_logic()
                     {
                         if(sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace))
                         {
-                            if(text_input_object.client_text_input_string.getSize() > 0)
+                            if(text_input_object.client_text_input_string.getSize() > 0 && text_input_cursor_position > 0)
                             {
-                                if(text_input_object.client_text_input_string.getSize() > 1)
-                                    text_input_object.client_text_input_string.erase(text_input_cursor_position-1);
+                                text_input_object.client_text_input_string.erase(text_input_cursor_position-1);
                                 text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
                                 text_input_cursor_position -= 1;
                             }
@@ -1073,8 +1079,9 @@ void SFML_logic()
             char message_to_be_sent[1024];
             sprintf(message_to_be_sent, "update-notepad:%s", text_input_object.client_text_input_string.toAnsiString().c_str());
 
-            if(has_updated_notepad)
+            if(has_updated_notepad && current_status == current_state_enum::CONNECTED_TO_ROOM)
             {
+                printf("%s\n", text_input_object.client_text_input_string.toAnsiString().c_str());
                 client::instance()->send_string(std::string(message_to_be_sent));
                 has_updated_notepad = false;
             }
