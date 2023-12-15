@@ -144,6 +144,15 @@ public:
             handle_error("couldn't send to server\n");
         }
     }
+
+    void send_message_to_server(const std::string& _header, const std::string _message)
+    {
+        std::string computed_message = _header + _message;
+        if(send(client_descriptor, computed_message.c_str(), 1024, 0) == -1)
+        {
+            handle_error("Couldn't send to the server.\n");
+        }
+    }
     
     static void listening_to_server_thread(uint32_t start_timespan)
     {
@@ -155,27 +164,27 @@ public:
             {
                 handle_error("Couldn't receive message from server.\n");
             }
-            printf("%s\n", received_string);
-            if(std::string(received_string) == "cntroom")
+            std::string received_header = std::string(received_string).substr(0, 3);
+            std::string received_string_string = std::string(received_string).substr(3);
+            
+            printf("Received header: %s\n", received_header.c_str());
+
+            if(received_header == "105")
             {
                 current_status = current_state_enum::CANT_FIND_ROOM;
             }
-            if(std::string(received_string).find("fndroom") != std::string::npos)
+            if(received_header == "101")
             {
-                printf("joined room");
+                current_status = current_state_enum::CONNECTED_TO_ROOM;
+            }
+            if(received_header == "104")
+            {
+                current_room_id = received_string_string;
                 current_status = current_state_enum::CONNECTED_TO_ROOM;   
             }
-            if(std::string(received_string).find("fncroom") != std::string::npos)
+            if(received_header == "120")
             {
-                printf("joined room");
-                current_room_id = std::string(received_string).substr(7);
-                printf("%s\n", current_room_id.c_str());
-                current_status = current_state_enum::CONNECTED_TO_ROOM;   
-            }
-            if(std::string(received_string).substr(0, 7) == "update:")
-            {
-                std::cout << std::string(received_string).substr(8) << '\n';
-                update_notepad(std::string(received_string).substr(8));
+                update_notepad(received_string_string);
             }
         }
     }
@@ -457,7 +466,7 @@ public:
         {
             auto create_room_press_function = [this](std::vector<std::string> _parameters) 
             {
-                client::instance()->send_string("create room");
+                client::instance()->send_message_to_server("002", "");
             };
 
             auto create_room_hover_function = [this](std::vector<std::string> _parameters)
@@ -481,7 +490,7 @@ public:
 
             auto leave_room_press_function = [this](std::vector<std::string> _parameters) 
             {
-                client::instance()->send_string("lv_room");
+                client::instance()->send_message_to_server("004", "");
                 current_status = current_state_enum::CONNECTED_TO_SERVER;
             };
 
@@ -755,7 +764,7 @@ public:
         {
             if(popup_window_string.size() == 5)
             {
-                client::instance()->send_string(std::string("join room") + popup_window_string);
+                client::instance()->send_message_to_server("003", popup_window_string);
                 draw_popup_window = false;
             }
         };
@@ -1077,12 +1086,10 @@ void SFML_logic()
             window.display();
 
             char message_to_be_sent[1024];
-            sprintf(message_to_be_sent, "update-notepad:%s", text_input_object.client_text_input_string.toAnsiString().c_str());
 
             if(has_updated_notepad && current_status == current_state_enum::CONNECTED_TO_ROOM)
             {
-                printf("%s\n", text_input_object.client_text_input_string.toAnsiString().c_str());
-                client::instance()->send_string(std::string(message_to_be_sent));
+                client::instance()->send_message_to_server("005", text_input_object.client_text_input_string.toAnsiString().c_str());
                 has_updated_notepad = false;
             }
         }
