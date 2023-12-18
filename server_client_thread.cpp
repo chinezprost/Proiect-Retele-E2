@@ -141,8 +141,10 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
 
         if(message_header == "005") // update_notepad
         {
+            const std::lock_guard<std::mutex> lock(client_joined_room->notepad_collab_i);
             if(client_joined_room != nullptr)
             {
+                
                 client_joined_room->notepad_collab = internal_buffer_string;
                 client_joined_room->UpdateClients();
             }
@@ -151,7 +153,25 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
 
         if(message_header == "006") // update_cursor
         {
-            
+            if(client_joined_room != nullptr)
+            {
+                if(client_descriptor == client_joined_room->client1_fd)
+                {
+                    client_joined_room->client1_cursor_pos = atoi(internal_buffer_string.c_str());
+                }
+                else if(client_descriptor == client_joined_room->client2_fd)
+                {
+                    client_joined_room->client2_cursor_pos = atoi(internal_buffer_string.c_str());
+                }
+                else
+                {
+                    printf("An unexceptional error has occured! Line 168, s_c_thread.cpp");
+                }
+
+                Server::Instance()->SendToClient(client_joined_room->client1_fd, std::string("112") + std::to_string(client_joined_room->client2_cursor_pos));
+                Server::Instance()->SendToClient(client_joined_room->client2_fd, std::string("112") + std::to_string(client_joined_room->client1_cursor_pos));
+            }
+
             continue;
         }
 

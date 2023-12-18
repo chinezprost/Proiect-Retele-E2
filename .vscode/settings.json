@@ -54,6 +54,8 @@
         "istream": "cpp",
         "sstream": "cpp",
         "map": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "condition_variable": "cpp",
+        "mutex": "cpp"
     }
 }

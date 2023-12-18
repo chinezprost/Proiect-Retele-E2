@@ -46,6 +46,7 @@ current_state_enum current_status = current_state_enum::NOT_CONNECTED;
 
 bool draw_popup_window = false;
 std::string popup_window_string = "";
+int client_input_cursor_position = 0;
 
 // antet
 
@@ -185,6 +186,10 @@ public:
             if(received_header == "120")
             {
                 update_notepad(received_string_string);
+            }
+            if(received_header == "112")
+            {
+                client_input_cursor_position = atoi(received_string_string.c_str());
             }
         }
     }
@@ -808,6 +813,8 @@ void update_notepad(const std::string& _string)
     text_input_object.text_input_string.setString(_string);
 }
 
+
+
 void SFML_logic()
     {
         if(!arial_font.loadFromFile("arial.ttf"))
@@ -835,6 +842,10 @@ void SFML_logic()
 
         
         sf::RectangleShape text_input_cursor(sf::Vector2f(3,20));
+        sf::RectangleShape client_input_cursor(sf::Vector2f(3,20));
+        text_input_cursor.setFillColor(sf::Color::Blue);
+        client_input_cursor.setFillColor(sf::Color::Red);
+        bool show_client_input_cursor = true;
         int text_input_cursor_position = 0;
 
         bool has_updated_notepad = false;
@@ -959,6 +970,7 @@ void SFML_logic()
             }
             window.clear();
             text_input_cursor.setPosition(text_input_object.text_input_string.findCharacterPos(text_input_cursor_position) + sf::Vector2f(0, 5));
+            client_input_cursor.setPosition(text_input_object.text_input_string.findCharacterPos(client_input_cursor_position) + sf::Vector2f(0, 5));
             //printf("%d, x: %f, y: %f\n", text_input_cursor_position, text_input_object.text_input_string.findCharacterPos(text_input_cursor_position).x, text_input_object.text_input_string.findCharacterPos(text_input_cursor_position).y);
             
             //process all the buttons
@@ -1078,6 +1090,7 @@ void SFML_logic()
             window.draw(text_input_object);
 
             window.draw(popup_window_object);
+            window.draw(client_input_cursor);
             window.draw(text_input_cursor);
 
             window.draw(status_text);
@@ -1090,6 +1103,7 @@ void SFML_logic()
             if(has_updated_notepad && current_status == current_state_enum::CONNECTED_TO_ROOM)
             {
                 client::instance()->send_message_to_server("005", text_input_object.client_text_input_string.toAnsiString().c_str());
+                client::instance()->send_message_to_server("006", std::to_string(text_input_cursor_position).c_str());
                 has_updated_notepad = false;
             }
         }

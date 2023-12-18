@@ -54,6 +54,7 @@ bool Server::AddClientThread(std::thread _thread)
 
 ClientRoom* Server::CreateRoom(const uint16_t& _client_fd)
 {
+    const std::lock_guard<std::mutex> lock(client_rooms_i);
     std::string room_id = ServerWorker::random_string(5);
 
     auto created_room = new ClientRoom(room_id, _client_fd);

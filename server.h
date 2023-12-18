@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <mutex>
 
 #include "server_client_room.h"
 #include "server_worker.h"
@@ -32,12 +33,12 @@ class Server
 {
 private:
     uint16_t server_descriptor = undefined;
-
     uint16_t max_clients = undefined;
     sockaddr_in server_object;
     std::vector<std::thread> connected_clients_threads;
     static Server* server_instance;
 public:
+    std::mutex client_rooms_i;
     std::vector<ClientRoom*> client_rooms;
     Server(const Server& server_object) = delete;
 
