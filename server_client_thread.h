@@ -7,6 +7,7 @@
 #define undefined -1
 
 #include "server.h"
+#include "server_db_handler.h"
 
 class ClientThread
 {

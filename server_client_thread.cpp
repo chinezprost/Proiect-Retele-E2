@@ -1,4 +1,5 @@
 #include "server_client_thread.h"
+
 ///////////////////////////////////////////////
 /*
 server received types:
@@ -184,6 +185,8 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
         if(message_header == "008") // save_file
         {
             
+            Server::Instance()->database_handler.SQL_Insert("INSERT INTO DOCUMENTS (ID, UNIQ_ID, CONTENT)" \
+            "VALUES (1, XDFAAS, #include <iostream>\n using namespace std;\n\n\nint main(){\n})");
             continue;
         }
 

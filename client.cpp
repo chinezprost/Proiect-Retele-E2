@@ -520,7 +520,7 @@ public:
         {
             auto save_button_press_function = [this](std::vector<std::string> _parameters) 
             {
-                printf("On press save button.\n");
+                client::instance()->send_message_to_server("008", "");
             };
 
             auto save_button_hover_function = [this](std::vector<std::string> _parameters)

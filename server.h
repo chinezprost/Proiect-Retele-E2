@@ -21,9 +21,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <mutex>
+#include <cstdint>
 
+
+#include "server_db_handler.h"
 #include "server_client_room.h"
 #include "server_worker.h"
+
 
 #define handle_error(x) { perror(x); exit(0); }
 #define undefined -1
@@ -38,6 +42,9 @@ private:
     std::vector<std::thread> connected_clients_threads;
     static Server* server_instance;
 public:
+
+    SQL_Handler database_handler {"SQLLite_Database.db"};
+
     std::mutex client_rooms_i;
     std::vector<ClientRoom*> client_rooms;
     Server(const Server& server_object) = delete;
