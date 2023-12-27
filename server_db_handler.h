@@ -3,6 +3,7 @@
 
 #include <sqlite3.h>
 #include <string>
+#include <vector>
 
 
 class SQL_Handler
@@ -10,15 +11,16 @@ class SQL_Handler
 protected:
     sqlite3 *data_base_object  = nullptr;
     char** data_base_error_msg = nullptr;
+    std::vector<std::vector<std::string>> db_result;
 public:
 
     static int SQL_Callback_Handler(void*, int, char**, char**);
 
-    SQL_Handler(std::string);
-    bool SQL_Create(std::string);
-    bool SQL_Insert(std::string);
-    bool SQL_Delete(std::string);
-    bool SQL_Find(std::string);
+    SQL_Handler    (const std::string&);
+    bool SQL_Create(const std::string&);
+    bool SQL_Insert(const std::string&);
+    bool SQL_Delete(const std::string&);
+    std::string* SQL_Find  (const std::string&);
 };
 
 #endif

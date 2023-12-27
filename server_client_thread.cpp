@@ -20,9 +20,9 @@ server response types:
 101 -> on_create_room_succes
 102 -> on_create_room_undefined_error
 
-
 103 -> on_join_room_succes
 104 -> on_join_room_not_found
+
 105 -> on_join_room_full
 106 -> on_join_invalid_code
 107 -> on_join_already_in
@@ -32,10 +32,16 @@ server response types:
 
 110 -> on_update_notepad
 111 -> on_update_cursor
-108 -> on_client_heartbeat
-109 -> on_save_file
-110 -> on_download_file
-111 -> on_delete_file
+112 -> on_client_heartbeat
+
+113 -> on_save_file_success
+114 -> on_save_file_failure
+
+115 -> on_download_file_succes
+116 -> on_download_file_failure
+
+117 -> on_delete_file_succes
+118 -> on_delete_file_failure
 */
 ///////////////////////////////////////////////
 
@@ -73,13 +79,13 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
         {
             if(client_joined_room != nullptr)
             {
-                Server::Instance()->SendToClient(client_descriptor, "103");
+                Server::Instance()->SendToClient(client_descriptor, "102");
                 continue;
             }
             ClientRoom* create_room_object = Server::Instance()->CreateRoom(client_descriptor);
             if(create_room_object == nullptr)
             {
-                Server::Instance()->SendToClient(client_descriptor, "102");
+                Server::Instance()->SendToClient(client_descriptor, "103");
                 continue;
             }
             
@@ -89,8 +95,8 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
                 Server::Instance()->SendToClient(client_descriptor, "100");
                 continue;
             }
-
-            Server::Instance()->SendToClient(client_descriptor, "101");
+            client_joined_room->notepad_collab = internal_buffer_string;
+            Server::Instance()->SendToClient(client_descriptor, "101" + client_joined_room->room_number);
             continue;
         }
 
@@ -111,11 +117,12 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
             client_joined_room = Server::Instance()->JoinRoom(client_descriptor, internal_buffer_string);
             if(client_joined_room == nullptr)
             {
-                Server::Instance()->SendToClient(client_descriptor, "105");
+                Server::Instance()->SendToClient(client_descriptor, "109");
                 continue;
             }
 
-            Server::Instance()->SendToClient(client_descriptor, "104");
+            Server::Instance()->SendToClient(client_descriptor, "104" + client_joined_room->room_number);
+            Server::Instance()->SendToClient(client_descriptor, "204" + client_joined_room->notepad_collab);
             continue;
         }
 
@@ -132,11 +139,11 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
                     client_joined_room->client2_fd = undefined;
                 }
                 client_joined_room = nullptr;
-                Server::Instance()->SendToClient(client_descriptor, "109");
+                Server::Instance()->SendToClient(client_descriptor, "110");
             }
             else
             {
-                Server::Instance()->SendToClient(client_descriptor, "110");
+                Server::Instance()->SendToClient(client_descriptor, "111");
             }
         }
 
@@ -169,8 +176,8 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
                     printf("An unexceptional error has occured! Line 168, s_c_thread.cpp");
                 }
 
-                Server::Instance()->SendToClient(client_joined_room->client1_fd, std::string("112") + std::to_string(client_joined_room->client2_cursor_pos));
-                Server::Instance()->SendToClient(client_joined_room->client2_fd, std::string("112") + std::to_string(client_joined_room->client1_cursor_pos));
+                Server::Instance()->SendToClient(client_joined_room->client1_fd, std::string("113") + std::to_string(client_joined_room->client2_cursor_pos));
+                Server::Instance()->SendToClient(client_joined_room->client2_fd, std::string("113") + std::to_string(client_joined_room->client1_cursor_pos));
             }
 
             continue;
@@ -184,9 +191,19 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
 
         if(message_header == "008") // save_file
         {
-            
-            Server::Instance()->database_handler.SQL_Insert("INSERT INTO DOCUMENTS (ID, UNIQ_ID, CONTENT)" \
-            "VALUES (1, XDFAAS, #include <iostream>\n using namespace std;\n\n\nint main(){\n})");
+            std::string saved_file_unique_id = ServerWorker::random_string_no_start_digit(6);
+
+            std::string query;
+            query = std::string("INSERT INTO DOCUMENTS (UNIQ_ID, CONTENT) VALUES ('" + saved_file_unique_id + "', '" + internal_buffer_string + "');");
+            bool result = Server::Instance()->database_handler.SQL_Insert(query);
+            if(result)
+            {
+                Server::Instance()->SendToClient(client_descriptor, "115" + saved_file_unique_id);
+            }
+            else
+            {
+                Server::Instance()->SendToClient(client_descriptor, "116");
+            }
             continue;
         }
 
@@ -199,6 +216,20 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
         if(message_header == "010") // delete_file
         {
             
+            continue;
+        }
+        if(message_header == "011")
+        {
+            std::string query = std::string("SELECT CONTENT FROM DOCUMENTS WHERE UNIQ_ID = '" + internal_buffer_string + "';");
+            std::string* result = Server::Instance()->database_handler.SQL_Find(query);
+            if(result != nullptr)
+            {
+                Server::Instance()->SendToClient(client_descriptor, "204" + *result);
+            }
+            else
+            {
+                Server::Instance()->SendToClient(client_descriptor, "116");
+            }
             continue;
         }
 

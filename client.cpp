@@ -24,13 +24,17 @@
 
 #define undefined -1
 
-const uint16_t WINDOW_WIDTH = 800;
-const uint16_t WINDOW_HEIGHT = 640;
+const uint16_t WINDOW_WIDTH = 1280;
+const uint16_t WINDOW_HEIGHT = 720;
 
 //static variables
 
 static sf::Font arial_font;
 sf::Text status_text;
+sf::Clock elasped_time;
+
+
+
 
 std::string current_room_id;
 
@@ -45,12 +49,87 @@ enum current_state_enum
 current_state_enum current_status = current_state_enum::NOT_CONNECTED;
 
 bool draw_popup_window = false;
+bool draw_popup_open_window = false;
+
 std::string popup_window_string = "";
+std::string popup_window_open_string = "";
+
 int client_input_cursor_position = 0;
 
 // antet
 
 void update_notepad(const std::string& _string);
+
+class interface_object : public sf::Drawable
+{
+public:
+    sf::Shape* interface_object_drawable;
+
+    sf::Vector2f position;
+    sf::Vector2f size;
+    sf::Vector2f color;
+
+    float rotation;
+    uint8_t thickness = 0;
+    interface_object() = default;
+    interface_object(const sf::Vector2f& _position, const float& _rotation, const sf::Vector2f& _size, const uint8_t& _thickness, const sf::Color& _color) : position(_position), rotation(_rotation), size(_size), thickness(_thickness) {}
+    interface_object(const sf::Vector2f& _position, const float& _rotation, const uint8_t& _thickness, const sf::Color& _color, sf::Shape* _interface_object_drawable) : position(_position), rotation(_rotation), thickness(_thickness)
+    {
+        interface_object_drawable = _interface_object_drawable;
+        interface_object_drawable->setPosition(_position);
+        interface_object_drawable->setRotation(_rotation);
+        interface_object_drawable->setFillColor(_color);
+        interface_object_drawable->setOutlineThickness(_thickness);
+    }
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        // _show(this->interface_object_drawable);
+        target.draw(*(this->interface_object_drawable));
+    }
+};
+
+class popup_alert : public interface_object
+{
+public:
+    sf::Text popup_alert_text;
+    sf::RectangleShape popup_alert_body;
+    sf::RectangleShape popup_alert_body_shadow;
+    uint16_t time_to_show = 1;
+    
+    popup_alert(const std::string& _text, const sf::Color& _color)
+    {
+        popup_alert_body_shadow.setSize(sf::Vector2f(WINDOW_WIDTH/2.5, WINDOW_HEIGHT/16));
+        popup_alert_body.setSize(sf::Vector2f(WINDOW_WIDTH/2.5, WINDOW_HEIGHT/16));
+        
+        popup_alert_body.setFillColor(sf::Color(200, 200, 200, 200));
+        popup_alert_body_shadow.setFillColor(sf::Color(0, 0, 0, 100));
+
+        popup_alert_body.setPosition(WINDOW_WIDTH/2 - popup_alert_body.getSize().x / 2, WINDOW_HEIGHT/2 - popup_alert_body.getSize().y / 2);
+        popup_alert_body_shadow.setPosition(WINDOW_WIDTH/2 - popup_alert_body.getSize().x / 2 - 3, WINDOW_HEIGHT/2 - popup_alert_body.getSize().y / 2 + 3);
+
+        popup_alert_text.setCharacterSize(20);
+        popup_alert_text.setFont(arial_font);
+        popup_alert_text.setString(_text);
+        popup_alert_text.setFillColor(_color);
+
+        popup_alert_text.setOrigin(sf::Vector2f(popup_alert_text.getGlobalBounds().width, popup_alert_text.getGlobalBounds().height) / 2.f + sf::Vector2f(popup_alert_text.getLocalBounds().left, popup_alert_text.getLocalBounds().top));
+        popup_alert_text.setPosition(popup_alert_body.getPosition() + popup_alert_body.getSize() / 2.f);
+        
+    }
+
+
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {      
+        target.draw(popup_alert_body_shadow);
+        target.draw(popup_alert_body);
+        target.draw(popup_alert_text);
+    }
+
+
+};
+
+popup_alert popup_alert_object("undefined", sf::Color::Black);
 
 
 class client
@@ -170,26 +249,65 @@ public:
             
             printf("Received header: %s\n", received_header.c_str());
 
-            if(received_header == "105")
-            {
-                current_status = current_state_enum::CANT_FIND_ROOM;
-            }
             if(received_header == "101")
             {
+                popup_alert_object = popup_alert(std::string("Created and joined room with ID:" + received_string_string), sf::Color::Green);
+                current_room_id = received_string_string;
+                elasped_time.restart();
                 current_status = current_state_enum::CONNECTED_TO_ROOM;
+            }
+            if(received_header == "103")
+            {
+                popup_alert_object = popup_alert(std::string("Failed to create room!" + received_string_string), sf::Color::Red);
+                current_room_id = received_string_string;
+                elasped_time.restart();
             }
             if(received_header == "104")
             {
+                popup_alert_object = popup_alert(std::string("Joined room with ID:" + received_string_string), sf::Color::Green);
                 current_room_id = received_string_string;
-                current_status = current_state_enum::CONNECTED_TO_ROOM;   
+                current_status = current_state_enum::CONNECTED_TO_ROOM;
+                elasped_time.restart();
             }
-            if(received_header == "120")
+            if(received_header == "204")
             {
                 update_notepad(received_string_string);
             }
+            if(received_header == "105")
+            {
+                popup_alert_object = popup_alert(std::string("Can't join room with ID:" + received_string_string), sf::Color::Red);
+                current_room_id = received_string_string;
+                current_status = current_state_enum::CONNECTED_TO_SERVER;  
+            }
+            if(received_header == "110")
+            {
+                popup_alert_object = popup_alert(std::string("You've left the current room!"), sf::Color::Red);
+                elasped_time.restart();
+                current_status = current_state_enum::CONNECTED_TO_SERVER;
+            }
             if(received_header == "112")
             {
-                client_input_cursor_position = atoi(received_string_string.c_str());
+                update_notepad(received_string_string);
+            }
+            if(received_header == "113")
+            {
+                uint16_t _incoming_pos = atoi(received_string_string.c_str());
+                if(_incoming_pos <= 0)
+                {
+                    _incoming_pos = 0;
+                }
+                client_input_cursor_position = _incoming_pos;
+            }
+            if(received_header == "115")
+            {
+                popup_alert_object = popup_alert(std::string("File saved succesfully with ID:" + received_string_string), sf::Color::Green);
+                elasped_time.restart();
+
+            }
+            if(received_header == "116")
+            {
+                popup_alert_object = popup_alert(std::string("Failed to save file to database!"), sf::Color::Red);
+                elasped_time.restart();
             }
         }
     }
@@ -323,34 +441,7 @@ void _show(sf::Shape* _shape)
 }
 
 //sfml-graphic
-class interface_object : public sf::Drawable
-{
-public:
-    sf::Shape* interface_object_drawable;
 
-    sf::Vector2f position;
-    sf::Vector2f size;
-    sf::Vector2f color;
-
-    float rotation;
-    uint8_t thickness = 0;
-    interface_object() = default;
-    interface_object(const sf::Vector2f& _position, const float& _rotation, const sf::Vector2f& _size, const uint8_t& _thickness, const sf::Color& _color) : position(_position), rotation(_rotation), size(_size), thickness(_thickness) {}
-    interface_object(const sf::Vector2f& _position, const float& _rotation, const uint8_t& _thickness, const sf::Color& _color, sf::Shape* _interface_object_drawable) : position(_position), rotation(_rotation), thickness(_thickness)
-    {
-        interface_object_drawable = _interface_object_drawable;
-        interface_object_drawable->setPosition(_position);
-        interface_object_drawable->setRotation(_rotation);
-        interface_object_drawable->setFillColor(_color);
-        interface_object_drawable->setOutlineThickness(_thickness);
-    }
-
-    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
-    {
-        // _show(this->interface_object_drawable);
-        target.draw(*(this->interface_object_drawable));
-    }
-};
 
 class button : public interface_object
 {
@@ -444,7 +535,7 @@ public:
     {
         //PLACE HOLDER
         text_input_string.setFont(arial_font);
-        text_input_string.setPosition(sf::Vector2f(6, 75));
+        text_input_string.setPosition(sf::Vector2f(6, 30));
         text_input_string.setFillColor(sf::Color::White);
         text_input_string.setCharacterSize(24);
     }
@@ -454,7 +545,13 @@ public:
         target.draw(text_input_string);
     }
 };
+text_input text_input_object;
 
+void update_notepad(const std::string& _string)
+{
+    text_input_object.client_text_input_string = _string;
+    text_input_object.text_input_string.setString(_string);
+}
 class menu_interface : public interface_object
 {
 public:
@@ -471,12 +568,12 @@ public:
         {
             auto create_room_press_function = [this](std::vector<std::string> _parameters) 
             {
-                client::instance()->send_message_to_server("002", "");
+                client::instance()->send_message_to_server("002", text_input_object.client_text_input_string);
             };
 
             auto create_room_hover_function = [this](std::vector<std::string> _parameters)
             {
-                printf("On hover file_button\n");
+                //printf("On hover file_button\n");
             };
             button create_room_button(sf::Vector2f(160, 20), 0, sf::Vector2f(80, 20), 0, "Create", 16, create_room_press_function, create_room_press_parameters, create_room_hover_function, create_room_hover_parameters);
             room_buttons.push_back(create_room_button);
@@ -484,11 +581,12 @@ public:
             auto join_room_press_function = [this](std::vector<std::string> _parameters) 
             {
                 draw_popup_window = true;
+                draw_popup_open_window = false;
             };
 
             auto join_room_hover_function = [this](std::vector<std::string> _parameters)
             {
-                printf("On hover join_room button\n");
+                //printf("On hover join_room button\n");
             };
             button join_room_button(sf::Vector2f(160, 40), 0, sf::Vector2f(80, 20), 0, "Join", 16, join_room_press_function, join_room_press_parameters, join_room_hover_function, join_room_hover_parameters);
             room_buttons.push_back(join_room_button);
@@ -501,7 +599,7 @@ public:
 
             auto leave_room_hover_function = [this](std::vector<std::string> _parameters)
             {
-                printf("On hover leave room button\n");
+                //printf("On hover leave room button\n");
             };
             button leave_room_button(sf::Vector2f(160, 60), 0, sf::Vector2f(80, 20), 0, "Leave", 16, leave_room_press_function, leave_room_press_parameters, leave_room_hover_function, leave_room_hover_parameters);
             room_buttons.push_back(leave_room_button);
@@ -513,19 +611,19 @@ public:
     public:
 
         std::vector<button> file_buttons;
-        std::vector<std::string> save_button_press_parameters, download_button_press_parameters;
-        std::vector<std::string> save_button_hover_parameters, download_button_hover_parameters;
+        std::vector<std::string> save_button_press_parameters, download_button_press_parameters, open_button_press_parameters, delete_button_press_parameters;
+        std::vector<std::string> save_button_hover_parameters, download_button_hover_parameters, open_button_hover_parameters, delete_button_hover_parameters;
         
         file_settings()
         {
             auto save_button_press_function = [this](std::vector<std::string> _parameters) 
             {
-                client::instance()->send_message_to_server("008", "");
+                client::instance()->send_message_to_server("008", text_input_object.text_input_string.getString());
             };
 
             auto save_button_hover_function = [this](std::vector<std::string> _parameters)
             {
-                printf("On hover save button\n");
+                //printf("On hover save button\n");
             };
 
             button save_button(sf::Vector2f(0, 20), 0, sf::Vector2f(80, 20), 0, "Save", 16, save_button_press_function, save_button_press_parameters, save_button_hover_function, save_button_hover_parameters);
@@ -538,10 +636,35 @@ public:
 
             auto download_button_hover_function = [this](std::vector<std::string> _parameters)
             {
-                printf("On hover download button.\n");
+                //printf("On hover download button.\n");
             };
             button download_button(sf::Vector2f(0, 40), 0, sf::Vector2f(80, 20), 0, "Download", 16, download_button_press_function, download_button_press_parameters, download_button_hover_function, download_button_hover_parameters);
             file_buttons.push_back(download_button);
+
+            auto open_button_press_function = [this](std::vector<std::string> _parameters) 
+            {
+                draw_popup_open_window = true;
+                draw_popup_window = false;
+            };
+
+            auto open_button_hover_function = [this](std::vector<std::string> _parameters)
+            {
+                //printf("On hover open button.\n");
+            };
+            button open_button(sf::Vector2f(0, 60), 0, sf::Vector2f(80, 20), 0, "Open", 16, open_button_press_function, open_button_press_parameters, open_button_hover_function, open_button_hover_parameters);
+            file_buttons.push_back(open_button);
+
+            auto delete_button_press_function = [this](std::vector<std::string> _parameters) 
+            {
+                printf("On press delete button.\n");
+            };
+
+            auto delete_button_hover_function = [this](std::vector<std::string> _parameters)
+            {
+                //printf("On hover delete button.\n");
+            };
+            button delete_button(sf::Vector2f(0, 80), 0, sf::Vector2f(80, 20), 0, "Delete", 16, delete_button_press_function, delete_button_press_parameters, delete_button_hover_function, delete_button_hover_parameters);
+            file_buttons.push_back(delete_button);
         }
     };
 
@@ -560,7 +683,7 @@ public:
 
         auto file_button_hover_function = [this](std::vector<std::string> _parameters)
         {
-            printf("On hover file_button\n");
+            //printf("On hover file_button\n");
         };
         button file_button(sf::Vector2f(0, 0), 0, sf::Vector2f(80, 20), 0, "File", 16, file_button_press_function, file_button_press_parameters, file_button_hover_function, file_button_hover_parameters);
 
@@ -573,7 +696,7 @@ public:
 
         auto edit_button_hover_function = [this](std::vector<std::string> _parameters) 
         {
-            printf("hover edited button\n");
+            //printf("hover edited button\n");
         };
         button edit_button(sf::Vector2f(80, 0), 0, sf::Vector2f(80, 20), 0, "Edit", 16, edit_button_press_function, edit_button_press_parameters, edit_button_hover_function, edit_button_hover_parameters);
 
@@ -769,14 +892,23 @@ public:
         {
             if(popup_window_string.size() == 5)
             {
-                client::instance()->send_message_to_server("003", popup_window_string);
-                draw_popup_window = false;
+                if(draw_popup_window)
+                {
+                    client::instance()->send_message_to_server("003", popup_window_string);
+                    draw_popup_window = false;
+                }
+                else if(draw_popup_open_window)
+                {
+                    client::instance()->send_message_to_server("011", popup_window_open_string);
+                    draw_popup_open_window = false;
+                }
+                
             }
         };
 
         auto confirm_button_hover_function = [this](std::vector<std::string> _parameters)
         {
-            printf("On hover confirm button\n");
+            //printf("On hover confirm button\n");
         };
         button confirm_button(position + sf::Vector2f(size.x/2 - 80/2, size.y/2+30), 0, sf::Vector2f(80, 20), 0, "Confirm", 16, confirm_button_press_function, confirm_button_press_parameters, confirm_button_hover_function, confirm_button_hover_parameters);
         confirm_button.button_shape.setFillColor(sf::Color(73, 214, 73, 230));
@@ -788,30 +920,24 @@ public:
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
     {
-        if(draw_popup_window)
+        target.draw(popup_window_shape_shadow);
+        target.draw(popup_window_shape);
+        for(auto i = popup_window_buttons.begin(); i != popup_window_buttons.end(); i++)
         {
-            target.draw(popup_window_shape_shadow);
-            target.draw(popup_window_shape);
-            for(auto i = popup_window_buttons.begin(); i != popup_window_buttons.end(); i++)
-            {
-                target.draw(i->button_shape);
-            }
-            target.draw(popup_input_box_shape);
-            target.draw(popup_window_text);
-            target.draw(input_text_box.text_input_string);
-            target.draw(confirm_button_text);
+            target.draw(i->button_shape);
         }
+        target.draw(popup_input_box_shape);
+        target.draw(popup_window_text);
+        target.draw(input_text_box.text_input_string);
+        target.draw(confirm_button_text);
     }
 };
 
 
-text_input text_input_object;
 
-void update_notepad(const std::string& _string)
-{
-    text_input_object.client_text_input_string = _string;
-    text_input_object.text_input_string.setString(_string);
-}
+
+
+
 
 
 
@@ -834,11 +960,21 @@ void SFML_logic()
         status_text.setFont(arial_font);
         status_text.setCharacterSize(20);
         status_text.setFillColor(sf::Color::Red);
-        status_text.setString("Not connected");
+        status_text.setString("No joined room.");
+
+        
+
 
         popup_window popup_window_object(sf::Vector2f(WINDOW_WIDTH/2 - WINDOW_WIDTH/8, WINDOW_HEIGHT/2 - WINDOW_HEIGHT/4), 0.0, sf::Vector2f(WINDOW_WIDTH/4,WINDOW_HEIGHT/4), 0, "Enter room code:");
+        popup_window popup_window_open_object(sf::Vector2f(WINDOW_WIDTH/2 - WINDOW_WIDTH/8, WINDOW_HEIGHT/2 - WINDOW_HEIGHT/4), 0.0, sf::Vector2f(WINDOW_WIDTH/4,WINDOW_HEIGHT/4), 0, "Enter file code:");
+
+        
 
         static_objects.static_object_init();
+
+
+        uint16_t max_popup_time = 5;
+
 
         
         sf::RectangleShape text_input_cursor(sf::Vector2f(3,20));
@@ -868,9 +1004,10 @@ void SFML_logic()
 
                 case current_state_enum::CONNECTED_TO_SERVER:
                 {
-                    if(status_text.getString().toAnsiString().compare("Connected to the server.") != 0)
-                        status_text.setString("Connected.");
-                    
+                    if(status_text.getString().toAnsiString().compare("No joined room!") != 0)
+                        status_text.setString("No joined room!");
+
+                    status_text.setFillColor(sf::Color(255, 165, 0, 255));
                     status_text.setPosition(WINDOW_WIDTH - status_text.getLocalBounds().width - 5, -3);
                 }
                 break;
@@ -922,11 +1059,36 @@ void SFML_logic()
                     }
                     
                 }
-                else
+                else if(draw_popup_open_window)
                 {
                     if(event.type == sf::Event::TextEntered)
                     {
                         if(sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace))
+                        {
+                            if(popup_window_open_string.size() > 0)
+                            {
+                                popup_window_open_string.pop_back();
+                                popup_window_open_object.input_text_box.text_input_string.setString(popup_window_open_string);
+                            }
+                        }
+                        else if(popup_window_open_string.size() < 6)
+                        {
+                            popup_window_open_string += toupper(event.text.unicode);
+                            popup_window_open_object.input_text_box.text_input_string.setString(popup_window_open_string);
+                        }
+                    }
+                }
+                else
+                {
+                    if(event.type == sf::Event::TextEntered)
+                    {
+                        if(!sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace) && !sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+                        {
+                            text_input_object.client_text_input_string.insert(text_input_cursor_position, event.text.unicode);
+                            text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
+                            text_input_cursor_position += 1;
+                        }
+                        else if(sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace))
                         {
                             if(text_input_object.client_text_input_string.getSize() > 0 && text_input_cursor_position > 0)
                             {
@@ -938,12 +1100,6 @@ void SFML_logic()
                         else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
                         {
                             text_input_object.client_text_input_string.insert(text_input_cursor_position, '\n');
-                            text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
-                            text_input_cursor_position += 1;
-                        }
-                        else
-                        {
-                            text_input_object.client_text_input_string.insert(text_input_cursor_position, event.text.unicode);
                             text_input_object.text_input_string.setString(text_input_object.client_text_input_string);
                             text_input_cursor_position += 1;
                         }
@@ -1084,17 +1240,56 @@ void SFML_logic()
                 }
             }
 
+            for(auto i = popup_window_open_object.popup_window_buttons.begin(); i != popup_window_open_object.popup_window_buttons.end(); i++)
+            {
+                if
+                (
+                    cursor_position.x >= i->button_shape.getPosition().x && 
+                    cursor_position.x <= i->button_shape.getSize().x + i->button_shape.getPosition().x &&
+                    cursor_position.y >= i->button_shape.getPosition().y &&
+                    cursor_position.y <= i->button_shape.getSize().y + i->button_shape.getPosition().y
+                )
+                {
+                    i->on_hover();
+                    if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                    {
+                        i->on_press();
+                    }
+                    else
+                    {
+                        i->hasBeenPressed = false;
+                    }
+                }
+                else
+                {
+                    i->isHovered = false;
+                }
+            }
+
             window.draw(static_objects);
 
-            window.draw(menu_interface_object);
+            
             window.draw(text_input_object);
 
-            window.draw(popup_window_object);
+            if(draw_popup_window)
+                window.draw(popup_window_object);
+            
+            if(draw_popup_open_window)
+                window.draw(popup_window_open_object);
+
             window.draw(client_input_cursor);
             window.draw(text_input_cursor);
 
             window.draw(status_text);
             
+            window.draw(menu_interface_object);
+
+
+
+            if(elasped_time.getElapsedTime().asSeconds() < max_popup_time && popup_alert_object.popup_alert_text.getString() != "undefined")
+            {
+                window.draw(popup_alert_object);
+            }
 
             window.display();
 
