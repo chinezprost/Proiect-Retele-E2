@@ -890,19 +890,15 @@ public:
 
         auto confirm_button_press_function = [this](std::vector<std::string> _parameters) 
         {
-            if(popup_window_string.size() == 5)
+            if(popup_window_string.size() == 5 && draw_popup_window)
             {
-                if(draw_popup_window)
-                {
-                    client::instance()->send_message_to_server("003", popup_window_string);
-                    draw_popup_window = false;
-                }
-                else if(draw_popup_open_window)
-                {
-                    client::instance()->send_message_to_server("011", popup_window_open_string);
-                    draw_popup_open_window = false;
-                }
-                
+                client::instance()->send_message_to_server("003", popup_window_string);
+                draw_popup_window = false;
+            }
+            else if(popup_window_open_string.size() == 6 && draw_popup_open_window)
+            {
+                client::instance()->send_message_to_server("011", popup_window_open_string);
+                draw_popup_open_window = false;
             }
         };
 

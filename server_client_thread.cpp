@@ -221,15 +221,8 @@ void ClientThread::operator()(const std::vector<std::string>& thread_parameters)
         if(message_header == "011")
         {
             std::string query = std::string("SELECT CONTENT FROM DOCUMENTS WHERE UNIQ_ID = '" + internal_buffer_string + "';");
-            std::string* result = Server::Instance()->database_handler.SQL_Find(query);
-            if(result != nullptr)
-            {
-                Server::Instance()->SendToClient(client_descriptor, "204" + *result);
-            }
-            else
-            {
-                Server::Instance()->SendToClient(client_descriptor, "116");
-            }
+            std::string result = Server::Instance()->database_handler.SQL_Find(query);
+            Server::Instance()->SendToClient(client_descriptor, "204" + result);
             continue;
         }
 

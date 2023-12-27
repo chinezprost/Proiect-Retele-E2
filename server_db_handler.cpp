@@ -19,19 +19,23 @@ SQL_Handler::SQL_Handler(const std::string& _db_name)
     }
 }
 
-int SQL_Handler::SQL_Callback_Handler(void* not_used, int argc, char** argv, char** az_col_name)
+int SQL_Handler::SQL_Callback_Handler(void* data, int argc, char** argv, char** az_col_name)
 {
+    querry_result_t *querry_result_a = (querry_result_t *)data;
+    printf("%d\n", argc);
     for(int i = 0; i < argc; i++)
     {
-        printf("%s = %s\n", az_col_name[i], argv[i] ? argv[i] : "NULL");
+        if(strcmp(az_col_name[i], "CONTENT") == 0)
+        {
+            querry_result_a->result = std::string(argv[i]);
+        }
     }
-    printf("\n");
     return 0;
 }
 
 bool SQL_Handler::SQL_Create(const std::string& _input)
 {
-    if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, 0, this->data_base_error_msg) != SQLITE_OK)
+    if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, &this->querry_result, this->data_base_error_msg) != SQLITE_OK)
     {
         printf("SQL error: %s \n", sqlite3_errmsg(this->data_base_object));
         sqlite3_free(this->data_base_error_msg);
@@ -46,7 +50,7 @@ bool SQL_Handler::SQL_Create(const std::string& _input)
 
 bool SQL_Handler::SQL_Insert(const std::string& _input)
 {
-    if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, (void*)data, this->data_base_error_msg) != SQLITE_OK)
+    if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, 0, this->data_base_error_msg) != SQLITE_OK)
     {
         printf("SQL error: %s \n", sqlite3_errmsg(this->data_base_object));
         sqlite3_free(this->data_base_error_msg);
@@ -59,9 +63,9 @@ bool SQL_Handler::SQL_Insert(const std::string& _input)
     return true;
 }
 
-std::string* SQL_Handler::SQL_Find(const std::string& _input)
+std::string SQL_Handler::SQL_Find(const std::string& _input)
 {
-    if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, 0, this->data_base_error_msg) != SQLITE_OK)
+    if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, &this->querry_result, this->data_base_error_msg) != SQLITE_OK)
     {
         printf("SQL error: %s \n", sqlite3_errmsg(this->data_base_object));
         sqlite3_free(this->data_base_error_msg);
@@ -69,6 +73,7 @@ std::string* SQL_Handler::SQL_Find(const std::string& _input)
     else
     {
         printf("Found.\n");
+        return this->querry_result.result;
     }
     return nullptr;
 }
