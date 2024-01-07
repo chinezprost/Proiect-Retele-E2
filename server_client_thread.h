@@ -12,7 +12,7 @@
 class ClientThread
 {
 public:
-    uint8_t client_descriptor = undefined;
+    int16_t client_descriptor = undefined;
     bool has_client_joined_room = false;
     ClientRoom* client_joined_room = nullptr;
 

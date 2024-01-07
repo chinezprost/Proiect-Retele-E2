@@ -6,7 +6,6 @@
 #include <vector>
 #include <string.h>
 
-
 class SQL_Handler
 {
 protected:

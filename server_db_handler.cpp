@@ -77,3 +77,18 @@ std::string SQL_Handler::SQL_Find(const std::string& _input)
     }
     return nullptr;
 }
+
+bool SQL_Handler::SQL_Delete(const std::string& _input)
+{
+    if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, &this->querry_result, this->data_base_error_msg) != SQLITE_OK)
+    {
+        printf("SQL error: %s \n", sqlite3_errmsg(this->data_base_object));
+        sqlite3_free(this->data_base_error_msg);
+        return false;
+    }
+    else
+    {
+        printf("Deleted.\n");
+        return true;
+    }
+}

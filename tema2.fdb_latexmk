@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1702294161 "c:/Proiect-Retele-E2/tema2.tex" "tema2.pdf" "tema2" 1702294162 0
-  "C:/Users/chinez/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1702286274 81088 29d6fa367ac022d1b69251d68c0742e6 ""
+["pdflatex"] 1704454111 "c:/Proiect-Retele-E2/tema2.tex" "tema2.pdf" "tema2" 1704454112 0
+  "C:/Users/chinez/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1704387844 81088 29d6fa367ac022d1b69251d68c0742e6 ""
   "C:/Users/chinez/AppData/Local/MiKTeX/fonts/pk/ljfour/jknappen/ec/dpi600/tcrm0900.pk" 1702286378 10472 2b6a1b7862057882afbec210c73fa873 ""
   "C:/Users/chinez/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1700663191 24199214 4b6f24bff0d8d0a12e5683ec90aa32ad ""
   "D:/Perl/Miktex/fonts/tfm/jknappen/ec/tcrm0900.tfm" 993062508 1444 b1efc6b76338296f8076c1701e4660f3 ""
@@ -111,16 +111,16 @@
   "D:/Perl/Miktex/tex/latex/url/url.sty" 1388490452 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
   "D:/Perl/Miktex/tex/latex/zref/zref-abspage.sty" 1695383086 2269 4fe6fb3396214c91f164d45faf9bec45 ""
   "D:/Perl/Miktex/tex/latex/zref/zref-base.sty" 1695383086 20785 f7d1133a287929598a897c93f8f4c44b ""
-  "c:/Proiect-Retele-E2/tema2.tex" 1702294160 12415 cd2428c6f4b5f1cf1bc12778c1cf1eff ""
+  "c:/Proiect-Retele-E2/tema2.tex" 1704454111 12385 f4a09f41b4a6399077c20652a09327ed ""
   "imagini/camera.png" 1702248283 10683 403e0fc4ec04b7560e091cdfb5d35f2e ""
   "imagini/camera2.png" 1702248561 11818 5e446cdf5e99a80297f7064d6110f394 ""
   "imagini/camera3.png" 1702249024 10529 109601e01c79975ace51232d490e869d ""
   "imagini/camera4.png" 1702249953 36267 5643acd374b5eb619454f36a811add33 ""
-  "imagini/tcp.png" 1702244754 162855 401d2a01953370382d4a110554cb8376 ""
+  "imagini/tcp.png" 1704454045 185349 a7cdf6a293e5450ad4836639e37b5e0e ""
   "imagini/uml.png" 1702043520 70919 bbeccfd2b58ca47f12c95f8143126093 ""
-  "tema2.aux" 1702294162 1483 8697d024d9d006ffe6f67831d4d45d12 "pdflatex"
-  "tema2.out" 1702294162 151 5cac9c2c69450c16babbe95c22fa1ed7 "pdflatex"
-  "tema2.tex" 1702294160 12415 cd2428c6f4b5f1cf1bc12778c1cf1eff ""
+  "tema2.aux" 1704454112 1483 8697d024d9d006ffe6f67831d4d45d12 "pdflatex"
+  "tema2.out" 1704454112 151 5cac9c2c69450c16babbe95c22fa1ed7 "pdflatex"
+  "tema2.tex" 1704454111 12385 f4a09f41b4a6399077c20652a09327ed ""
   (generated)
   "tema2.aux"
   "tema2.log"

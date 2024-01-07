@@ -67,7 +67,7 @@ public:
 
     ClientRoom* JoinRoom(const uint16_t&, const std::string&);
 
-    void SendToClient(const uint8_t&, const std::string&);
+    void SendToClient(const int16_t&, const std::string&);
 
     const uint16_t& GetServerDescriptor();
 };

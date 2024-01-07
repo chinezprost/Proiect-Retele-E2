@@ -57,7 +57,7 @@ ClientRoom* Server::CreateRoom(const uint16_t& _client_fd)
     const std::lock_guard<std::mutex> lock(client_rooms_i);
     std::string room_id = ServerWorker::random_string(5);
 
-    auto created_room = new ClientRoom(room_id, _client_fd);
+    auto created_room = new ClientRoom(room_id);
     client_rooms.push_back(created_room);
 
     printf("Room with ID: %s has been created by Client: %d\n", room_id.c_str(), _client_fd);
@@ -83,14 +83,18 @@ ClientRoom* Server::JoinRoom(const uint16_t& _client_fd, const std::string& _roo
         printf("Client %d couldn't find the room: %s!\n", _client_fd, _room_code.c_str());
         return nullptr;
     }
-
+    printf("%d %d\n", found_room_object->client1_fd, found_room_object->client2_fd);
     if(found_room_object->client1_fd == undefined)
     {
         found_room_object->client1_fd = _client_fd;
     }
-    else
+    else if(found_room_object->client2_fd == undefined)
     {
         found_room_object->client2_fd = _client_fd;
+    }
+    else
+    {
+        return nullptr;
     }
 
     printf("Client %d has joined room: %s!\n", _client_fd, _room_code.c_str());
@@ -103,10 +107,12 @@ const uint16_t& Server::GetServerDescriptor()
     return this->server_descriptor;
 }
 
-void Server::SendToClient(const uint8_t& _client_fd, const std::string& _message)
+void Server::SendToClient(const int16_t& _client_fd, const std::string& _message)
 {
-    if(send(_client_fd, _message.c_str(), 1024, 0) == -1)
-    {
-        handle_error("Couldn't send message to client")
-    }
+    printf("Sending to client: %d the message: %s\n", _client_fd, _message.c_str());
+    if(_client_fd > 0)
+        if(send(_client_fd, _message.c_str(), 1024, 0) == -1)
+        {
+            handle_error("Couldn't send message to client")
+        }
 }

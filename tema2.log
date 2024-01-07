@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.10.12) (preloaded format=pdflatex 2023.11.22)  11 DEC 2023 13:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.10.12) (preloaded format=pdflatex 2023.11.22)  5 JAN 2024 13:28
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -491,13 +491,13 @@ Underfull \hbox (badness 10000) in paragraph at lines 98--100
 
  []
 
-<./imagini/tcp.png, id=25, 828.84656pt x 665.48625pt>
+<./imagini/tcp.png, id=25, 1100.11pt x 888.31876pt>
 File: ./imagini/tcp.png Graphic file (type png)
 <use ./imagini/tcp.png>
 Package pdftex.def Info: ./imagini/tcp.png  used on input line 103.
-(pdftex.def)             Requested size: 538.74388pt x 432.56093pt.
+(pdftex.def)             Requested size: 517.05177pt x 417.50987pt.
 
-Overfull \hbox (99.32304pt too wide) in paragraph at lines 102--104
+Overfull \hbox (84.65721pt too wide) in paragraph at lines 102--104
 []  [] 
  []
 
@@ -673,7 +673,7 @@ Here is how much of TeX's memory you used:
  1141 hyphenation exceptions out of 8191
  76i,8n,80p,402b,1269s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\chinez\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm0900.pk><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmbx10.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmbx12.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmbx5.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmbx6.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmbx7.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmbx9.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmmi6.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmmib10.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmr10.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmr12.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmr5.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmr6.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmr9.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmsy6.pfb><D:/Perl/Miktex/fonts/type1/public/amsfonts/cm/cmtt9.pfb>
-Output written on tema2.pdf (8 pages, 371595 bytes).
+Output written on tema2.pdf (8 pages, 374356 bytes).
 PDF statistics:
  205 PDF objects out of 1000 (max. 8388607)
  48 named destinations out of 1000 (max. 500000)

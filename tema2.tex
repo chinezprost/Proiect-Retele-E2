@@ -90,7 +90,7 @@ Comunicarea dintre thread-urile aferente server-ului, dar și
 cele asociate client-ului se face prin actualizarea variabelelor globale, fiecare variablă fiindu-i alocată câte un {\bf mutex}.
 Pentru interfața grafică a clientului (serverul nu are interfață grafică) s-a folosit {\bf SFML 2.6.1} deoarece este o librărie puternică, care satură nevoile grafice ale acestui proiect.
 
-Pentru stocarea și manipularea eficientă a datelor se folosește baza de date non-relațională {\bf MongoDB}, datele fiind salvate sub formă de documente {\bf JSON}. 
+Pentru stocarea și manipularea eficientă a datelor se folosește baza de date relațională {\bf SQLite}, datele fiind salvate cu ID-ul unic și conținutul documentului.
 \\
 
 \newpage
@@ -99,8 +99,8 @@ Pentru stocarea și manipularea eficientă a datelor se folosește baza de date 
 \\
 
 \begin{figure}[htbp!]
-    \hspace{-94px} 
-    \includegraphics[scale=0.65]{tcp.png}
+    \hspace{-87px} 
+    \includegraphics[scale=0.47]{tcp.png}
     \caption{Structura aplicației din punct al vedere al conecțiunii.}
     \label{fig:yourlabel}
 \end{figure}
@@ -173,10 +173,10 @@ cod de identificare a fișierului, format din zece carac\-tere alfanumerice.
 \\
 
 {\bf Descarcă fișier.} Un utilizator poate descărca fișierul asociat camerei la care este conectat sau un fișier salvat în baza de date. Utilizatorul poate descărca fișierul la care lucrează în momentul respectiv, sau oricare alt
-fișier prin introducerea unui cod de identificare format din zece caractere aflanumerice. Dacă în baza de date există un astfel de fișier, atunci utilizatorul îl poate descărca în orice loc din SO, oferindu-i-se această opțiune într-o căsuță pop-up.
+fișier prin introducerea unui cod de identificare format din zece caractere aflanumerice. Dacă în baza de date există un astfel de fișier, atunci utilizatorul îl poate descărca în locul în care se află și programul.
 \\
 
-{\bf Deschide fișier.} Un utilizator poate deschide un fișier local prin apăsarea butonului {\bf Open}, fișier pe care ulterior îl poate asocia unei camere.
+{\bf Deschide fișier.} Un utilizator poate deschide un fișier salvat in baza de date prin butonul {\bf Open}, fișier pe care ulterior îl poate asocia unei camere.
 \\
 
 {\bf Șterge fișier.} Un utilizator poate șterge un fișier aflat în baza de date prin identificarea acestuia cu ID-ul unic.
@@ -227,7 +227,7 @@ Mai jos este un snippet de cod care reprezintă inițializarea logicii thread-ul
         signal_handler_logic();
         server* server_object = server::instance(AF_INET, SOCK_STREAM, 0, INADDR_ANY, 25565, 32);
 
-        uint8_t connected_client_descriptor = undefined;
+        int16_t connected_client_descriptor = undefined;
 
         std::vector<std::string> server_processing_thread_parameters;
 
