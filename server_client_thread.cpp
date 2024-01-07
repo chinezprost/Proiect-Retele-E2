@@ -71,6 +71,11 @@ void ClientThread::operator()(const std::vector<std::string> &thread_parameters)
         std::string message_header = internal_buffer_string.substr(0, 3);
         internal_buffer_string = internal_buffer_string.substr(3);
 
+        if(internal_buffer_string.size() == 0)
+        {
+            internal_buffer_string = "";
+        }
+
         if (message_header == "000") // undefined_message
         {
 
@@ -157,10 +162,9 @@ void ClientThread::operator()(const std::vector<std::string> &thread_parameters)
 
         if (message_header == "005") // update_notepad
         {
-            const std::lock_guard<std::mutex> lock(client_joined_room->notepad_collab_i);
             if (client_joined_room != nullptr)
             {
-
+                const std::lock_guard<std::mutex> lock(client_joined_room->notepad_collab_i);
                 client_joined_room->notepad_collab = internal_buffer_string;
                 client_joined_room->UpdateClients();
             }
@@ -215,9 +219,8 @@ void ClientThread::operator()(const std::vector<std::string> &thread_parameters)
             continue;
         }
 
-        if (message_header == "009") // download_file
+        if (message_header == "009") 
         {
-
             continue;
         }
 

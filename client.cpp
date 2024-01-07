@@ -29,8 +29,8 @@
 
 #define undefined -1
 
-const uint16_t WINDOW_WIDTH = 960;
-const uint16_t WINDOW_HEIGHT = 540;
+const uint16_t WINDOW_WIDTH = 920;
+const uint16_t WINDOW_HEIGHT = 520;
 
 // static variables
 
