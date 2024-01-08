@@ -65,6 +65,7 @@ bool SQL_Handler::SQL_Insert(const std::string& _input)
 
 std::string SQL_Handler::SQL_Find(const std::string& _input)
 {
+    this->querry_result.result = "";
     if(sqlite3_exec(this->data_base_object, _input.c_str(), this->SQL_Callback_Handler, &this->querry_result, this->data_base_error_msg) != SQLITE_OK)
     {
         printf("SQL error: %s \n", sqlite3_errmsg(this->data_base_object));

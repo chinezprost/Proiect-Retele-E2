@@ -52,9 +52,11 @@ current_state_enum current_status = current_state_enum::NOT_CONNECTED;
 
 bool draw_popup_window = false;
 bool draw_popup_open_window = false;
+bool draw_popup_delete_window = false;
 
 std::string popup_window_string = "";
 std::string popup_window_open_string = "";
+std::string popup_window_delete_string = "";
 
 int client_input_cursor_position = 0;
 int text_input_cursor_position = 0;
@@ -586,6 +588,7 @@ public:
             {
                 draw_popup_window = true;
                 draw_popup_open_window = false;
+                draw_popup_delete_window = false;
             };
 
             auto join_room_hover_function = [this](std::vector<std::string> _parameters)
@@ -650,6 +653,7 @@ public:
             {
                 draw_popup_open_window = true;
                 draw_popup_window = false;
+                draw_popup_delete_window = false;
             };
 
             auto open_button_hover_function = [this](std::vector<std::string> _parameters)
@@ -661,7 +665,9 @@ public:
 
             auto delete_button_press_function = [this](std::vector<std::string> _parameters)
             {
-                client::instance()->send_message_to_server("010", text_input_object.text_input_string.getString());
+                draw_popup_delete_window = true;
+                draw_popup_window = false;
+                draw_popup_open_window = false;
             };
 
             auto delete_button_hover_function = [this](std::vector<std::string> _parameters)
@@ -866,13 +872,13 @@ public:
         popup_window_shape_shadow.setOutlineThickness(_thickness);
 
         popup_input_box_shape = sf::RectangleShape();
-        popup_input_box_shape.setPosition(_position + sf::Vector2f(5, 40));
+        popup_input_box_shape.setPosition(_position + sf::Vector2f(5, 59));
         popup_input_box_shape.setFillColor(sf::Color(100, 100, 100, 200));
         popup_input_box_shape.setRotation(_rotation);
-        popup_input_box_shape.setSize(_size - sf::Vector2f(15, _size.y / 1.1));
+        popup_input_box_shape.setSize(_size - sf::Vector2f(15, _size.y / 0.85));
         popup_input_box_shape.setOutlineThickness(_thickness);
 
-        popup_window_text.setPosition(_position + sf::Vector2f(10, 10));
+        popup_window_text.setPosition(_position + sf::Vector2f(11, 10));
         popup_window_text.setFont(arial_font);
         popup_window_text.setCharacterSize(14);
         popup_window_text.setFillColor(sf::Color::Black);
@@ -893,6 +899,11 @@ public:
             {
                 client::instance()->send_message_to_server("011", popup_window_open_string);
                 draw_popup_open_window = false;
+            }
+            else if(popup_window_delete_string.size() == 6 && draw_popup_delete_window)
+            {
+                client::instance()->send_message_to_server("010", popup_window_delete_string);
+                draw_popup_delete_window = false;
             }
         };
 
@@ -944,7 +955,9 @@ void SFML_logic()
     status_text.setString("No joined room.");
 
     popup_window popup_window_object(sf::Vector2f(WINDOW_WIDTH / 2 - WINDOW_WIDTH / 8, WINDOW_HEIGHT / 2 - WINDOW_HEIGHT / 4), 0.0, sf::Vector2f(WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4), 0, "Enter room code:");
-    popup_window popup_window_open_object(sf::Vector2f(WINDOW_WIDTH / 2 - WINDOW_WIDTH / 8, WINDOW_HEIGHT / 2 - WINDOW_HEIGHT / 4), 0.0, sf::Vector2f(WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4), 0, "Enter file code:");
+    popup_window popup_window_open_object(sf::Vector2f(WINDOW_WIDTH / 2 - WINDOW_WIDTH / 8, WINDOW_HEIGHT / 2 - WINDOW_HEIGHT / 4), 0.0, sf::Vector2f(WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4), 0, "Open: Enter file code:");
+    popup_window popup_window_delete_object(sf::Vector2f(WINDOW_WIDTH / 2 - WINDOW_WIDTH / 8, WINDOW_HEIGHT / 2 - WINDOW_HEIGHT / 4), 0.0, sf::Vector2f(WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4), 0, "Delete: Enter file code:");
+
 
     static_objects.static_object_init();
 
@@ -1051,6 +1064,25 @@ void SFML_logic()
                     {
                         popup_window_open_string += toupper(event.text.unicode);
                         popup_window_open_object.input_text_box.text_input_string.setString(popup_window_open_string);
+                    }
+                }
+            }
+            else if (draw_popup_delete_window)
+            {
+                if (event.type == sf::Event::TextEntered)
+                {
+                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace))
+                    {
+                        if (popup_window_delete_string.size() > 0)
+                        {
+                            popup_window_delete_string.pop_back();
+                            popup_window_delete_object.input_text_box.text_input_string.setString(popup_window_delete_string);
+                        }
+                    }
+                    else if (popup_window_delete_string.size() < 6)
+                    {
+                        popup_window_delete_string += toupper(event.text.unicode);
+                        popup_window_delete_object.input_text_box.text_input_string.setString(popup_window_delete_string);
                     }
                 }
             }
@@ -1231,6 +1263,30 @@ void SFML_logic()
             }
         }
 
+        for (auto i = popup_window_delete_object.popup_window_buttons.begin(); i != popup_window_delete_object.popup_window_buttons.end(); i++)
+        {
+            if (
+                cursor_position.x >= i->button_shape.getPosition().x &&
+                cursor_position.x <= i->button_shape.getSize().x + i->button_shape.getPosition().x &&
+                cursor_position.y >= i->button_shape.getPosition().y &&
+                cursor_position.y <= i->button_shape.getSize().y + i->button_shape.getPosition().y)
+            {
+                i->on_hover();
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                {
+                    i->on_press();
+                }
+                else
+                {
+                    i->hasBeenPressed = false;
+                }
+            }
+            else
+            {
+                i->isHovered = false;
+            }
+        }
+
         window.draw(static_objects);
 
         window.draw(text_input_object);
@@ -1240,6 +1296,9 @@ void SFML_logic()
 
         if (draw_popup_open_window)
             window.draw(popup_window_open_object);
+
+        if(draw_popup_delete_window)
+            window.draw(popup_window_delete_object);
 
         window.draw(client_input_cursor);
         window.draw(text_input_cursor);
