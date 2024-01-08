@@ -64,7 +64,7 @@
     Documentație referitoare la proiectul ales pentru materia Computer Networks. Proiectul constă într-o aplicație
     client-server care permite utilizatorilor să prelucreze fișiere text concurent, în timp real.
     
-    \keywords{TCP  \and Server \and MongoDB \and Client \and Mutex \and Concurent \and Thread}
+    \keywords{TCP  \and Server \and SQLite \and Client \and Mutex \and Concurent \and Thread}
     \end{abstract}
 
 {\Large \bf 1 Introducere} 
@@ -164,16 +164,14 @@ Această componenta se ocupă cu manipularea fișierelor de către utilizatorii 
     \includegraphics[scale=0.6]{camera3.png}
 \end{figure}
 
-Funcționalitățile pot fi accesate prin poziționarea cursorului pe butonul {\bf File}. De asemenea, utilizatorul poate manipula text-ul ca oricare alt notepad obișnuit prin apăsarea butonului
-{\bf Edit}.
+Funcționalitățile pot fi accesate prin poziționarea cursorului pe butonul {\bf File}. De asemenea, utilizatorul poate șterge conținutul notepad-ului prin apăsarea lui {\bf Clear}.
 \\\\
 
 {\bf Salvează fișier.} Un utilizator poate salva fișierul asociat camerei la care este conectat prin apăsarea butonului {\bf Save}. Fișierul este salvat în baza de date, utilizatorilor primind astfel
-cod de identificare a fișierului, format din zece carac\-tere alfanumerice.
+cod de identificare a fișierului, format din șase carac\-tere alfanumerice.
 \\
 
-{\bf Descarcă fișier.} Un utilizator poate descărca fișierul asociat camerei la care este conectat sau un fișier salvat în baza de date. Utilizatorul poate descărca fișierul la care lucrează în momentul respectiv, sau oricare alt
-fișier prin introducerea unui cod de identificare format din zece caractere aflanumerice. Dacă în baza de date există un astfel de fișier, atunci utilizatorul îl poate descărca în locul în care se află și programul.
+{\bf Descarcă fișier.} Un utilizator poate descărca fișierul asociat camerei la care este conectat. Utilizatorul poate descărca fișierul la care lucrează în momentul respectiv sub forma unui fișier {\bf .txt}.
 \\
 
 {\bf Deschide fișier.} Un utilizator poate deschide un fișier salvat in baza de date prin butonul {\bf Open}, fișier pe care ulterior îl poate asocia unei camere.

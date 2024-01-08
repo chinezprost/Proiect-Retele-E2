@@ -640,6 +640,9 @@ public:
                 std::ofstream ofstream_file(std::string("collab_notepad_saved_" + current_room_id));
                 ofstream_file << text_input_object.client_text_input_string.toAnsiString();
                 ofstream_file.close();
+
+                popup_alert_object = popup_alert(std::string("File downloaded!"), sf::Color::Green);
+                elasped_time.restart();
             };
 
             auto download_button_hover_function = [this](std::vector<std::string> _parameters)
