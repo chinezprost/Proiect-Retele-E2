@@ -1,2 +1,0 @@
--- SQLite
-SELECT * FROM documents WHERE UNIQ_ID = 'YL7G7Y';
